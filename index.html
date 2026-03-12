@@ -8,1079 +8,1311 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- SheetJS (Excel Parser) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Google Fonts: Sarabun -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
     <style>
-        /* สไตล์เสริมสำหรับการแสดง Modal Animation */
-        .animate-in { animation: fadeIn 0.2s ease-out; }
-        .zoom-in-95 { animation: zoomIn 0.2s ease-out; }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        body {
+            font-family: 'Sarabun', sans-serif;
         }
-        @keyframes zoomIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        
-        /* Custom scrollbar แบบบาง */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
+        /* Custom scrollbar for better UI */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
+
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel for in-browser JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-slate-50 font-sans text-gray-900">
+<body class="bg-slate-50 text-slate-800">
+    <div id="root"></div>
 
-    <div id="app"></div>
+    <script type="text/babel">
+        const { useState, Fragment, useEffect, useRef } = React;
 
-    <script>
-        // --- 1. ข้อมูลและ State เริ่มต้น ---
+        // --- Inline SVG Icons (แทนที่ lucide-react เพื่อให้ทำงานใน HTML ไฟล์เดียวได้) ---
+        const SvgIcon = ({ children, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const FileText = ({ className }) => <SvgIcon className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></SvgIcon>;
+        const Search = ({ className }) => <SvgIcon className={className}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></SvgIcon>;
+        const ArrowLeft = ({ className }) => <SvgIcon className={className}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></SvgIcon>;
+        const Package = ({ className }) => <SvgIcon className={className}><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></SvgIcon>;
+        const Calendar = ({ className }) => <SvgIcon className={className}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></SvgIcon>;
+        const MapPin = ({ className }) => <SvgIcon className={className}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></SvgIcon>;
+        const CheckCircle = ({ className }) => <SvgIcon className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></SvgIcon>;
+        const Clock = ({ className }) => <SvgIcon className={className}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></SvgIcon>;
+        const Eye = ({ className }) => <SvgIcon className={className}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></SvgIcon>;
+        const Plus = ({ className }) => <SvgIcon className={className}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></SvgIcon>;
+        const X = ({ className }) => <SvgIcon className={className}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></SvgIcon>;
+        const Edit = ({ className }) => <SvgIcon className={className}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></SvgIcon>;
+        const Trash2 = ({ className }) => <SvgIcon className={className}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></SvgIcon>;
+        const UploadCloud = ({ className }) => <SvgIcon className={className}><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/><polyline points="16 16 12 12 8 16"/></SvgIcon>;
+        const FileSpreadsheet = ({ className }) => <SvgIcon className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></SvgIcon>;
+        const Loader2 = ({ className }) => <SvgIcon className={className}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></SvgIcon>;
+        const ChevronDown = ({ className }) => <SvgIcon className={className}><polyline points="6 9 12 15 18 9"/></SvgIcon>;
+        const ChevronRight = ({ className }) => <SvgIcon className={className}><polyline points="9 18 15 12 9 6"/></SvgIcon>;
+        const PlusCircle = ({ className }) => <SvgIcon className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></SvgIcon>;
+        const MoreVertical = ({ className }) => <SvgIcon className={className}><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></SvgIcon>;
+        const PieChart = ({ className }) => <SvgIcon className={className}><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></SvgIcon>;
+        const ChevronsDown = ({ className }) => <SvgIcon className={className}><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></SvgIcon>;
+        const ChevronsUp = ({ className }) => <SvgIcon className={className}><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></SvgIcon>;
+        const Save = ({ className }) => <SvgIcon className={className}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></SvgIcon>;
+        const Paperclip = ({ className }) => <SvgIcon className={className}><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></SvgIcon>;
+        const Camera = ({ className }) => <SvgIcon className={className}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></SvgIcon>;
+        const ImageIcon = ({ className }) => <SvgIcon className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></SvgIcon>;
+
+        // --- Mock Data ---
         const INITIAL_DOCUMENTS = [
-            { id: 'TR-2567-0001', date: '2024-12-29', destination: 'สอจ.วิเชียรบุรี', status: 'completed', creator: 'เจ้าหน้าที่', notes: 'จัดสรรงบประมาณ 29006630001004100281', attachedFile: null, attachedFileUrl: null, fileType: null },
-            { id: 'TR-2567-0002', date: '2024-03-05', destination: 'สาขาเชียงใหม่', status: 'pending', creator: 'สมชาย ใจดี', notes: 'ส่งคอมพิวเตอร์ทดแทนเครื่องที่ชำรุด', attachedFile: null, attachedFileUrl: null, fileType: null }
+            {
+                id: 'TR-2567-0001',
+                date: '2024-12-29',
+                destination: 'สอจ.วิเชียรบุรี',
+                status: 'completed',
+                creator: 'เจ้าหน้าที่',
+                notes: 'จัดสรรงบประมาณ 29006630001004100281',
+                attachedFile: null
+            },
+            {
+                id: 'TR-2567-0002',
+                date: '2024-03-05',
+                destination: 'สาขาเชียงใหม่',
+                status: 'pending',
+                creator: 'สมชาย ใจดี',
+                notes: 'ส่งคอมพิวเตอร์ทดแทนเครื่องที่ชำรุด',
+                attachedFile: null
+            }
         ];
 
         const INITIAL_EQUIPMENT_GROUPS = [
-            { id: 'g-1', docId: 'TR-2567-0001', title: 'รายการ ชุดโต๊ะทำงาน เก้าอี้ทำงาน และเก้าอี้หน้าโต๊ะ ระดับชำนาญการ ระดับชำนาญงาน ระดับปฏิบัติการและระดับปฏิบัติงาน', items: [
-                { id: 'i-1-1', assetNumber: 'OF-67-001', description: 'ชุดโต๊ะทำงาน และเก้าอี้ทำงานระดับปฏิบัติการ จำนวน 1 ชุด', price: 12300, itemStatus: 'purchased' },
-                { id: 'i-1-2', assetNumber: 'OF-67-002 ถึง 007', description: 'เก้าอี้หน้าโต๊ะระดับชำนาญการ (CH-12) จำนวน 6 ตัว', price: 7800, itemStatus: 'purchased' },
-                { id: 'i-1-3', assetNumber: '', description: 'เก้าอี้หน้าโต๊ะระดับชำนาญงาน (CH-12) จำนวน 4 ตัว', price: 5200, itemStatus: 'pending' },
-                { id: 'i-1-4', assetNumber: '', description: 'เก้าอี้หน้าโต๊ะระดับปฏิบัติการ (CH-12) จำนวน 2 ตัว', price: 2600, itemStatus: 'pending' },
-                { id: 'i-1-5', assetNumber: '', description: 'ชุดโต๊ะทำงาน และเก้าอี้ทำงานระดับชำนาญการ จำนวน 1 ชุด', price: 12300, itemStatus: 'pending' },
-                { id: 'i-1-6', assetNumber: '', description: 'ชุดโต๊ะทำงาน และเก้าอี้ทำงานระดับชำนาญงาน จำนวน 2 ชุด', price: 24600, itemStatus: 'pending' },
-                { id: 'i-1-7', assetNumber: '', description: 'เก้าอี้ทำงานระดับปฏิบัติการ (CH-5) จำนวน 1 ตัว', price: 3900, itemStatus: 'pending' },
-                { id: 'i-1-8', assetNumber: '', description: 'ชุดโต๊ะทำงาน เก้าอี้ทำงาน และเก้าอี้หน้าโต๊ะระดับปฏิบัติงาน จำนวน 1 ชุด', price: 14900, itemStatus: 'pending' }
-            ]},
-            { id: 'g-2', docId: 'TR-2567-0001', title: 'รายการ เครื่องถ่ายเอกสาร ระบบดิจิทัล (ขาว-ดำ) ความเร็ว 50 แผ่นต่อนาที', items: [
-                { id: 'i-2-1', description: 'เครื่องถ่ายเอกสาร ระบบดิจิทัล (ขาว-ดำ) ความเร็ว 50 แผ่นต่อนาที จำนวน 1 เครื่อง', price: 188000, itemStatus: 'pending' }
-            ]},
-            { id: 'g-3', docId: 'TR-2567-0001', title: 'รายการ ตู้เหล็ก แบบ 2 บาน', items: [
-                { id: 'i-3-1', description: 'ตู้เหล็ก แบบ 2 บาน จำนวน 10 ตู้', price: 66000, itemStatus: 'purchased' }
-            ]}
+            {
+                id: 'g-1',
+                docId: 'TR-2567-0001',
+                title: 'รายการ ชุดโต๊ะทำงาน เก้าอี้ทำงาน และเก้าอี้หน้าโต๊ะ ระดับชำนาญการ ระดับชำนาญงาน ระดับปฏิบัติการและระดับปฏิบัติงาน',
+                items: [
+                { 
+                    id: 'i-1-1', description: 'ชุดโต๊ะทำงาน และเก้าอี้ทำงานระดับปฏิบัติการ จำนวน 1 ชุด', price: 12300, itemStatus: 'purchased',
+                    assets: [{ id: 'a-1', assetNumber: 'OF-67-001', assetName: 'ชุดโต๊ะทำงานและเก้าอี้', image: null, status: 'purchased' }]
+                },
+                { 
+                    id: 'i-1-2', description: 'เก้าอี้หน้าโต๊ะระดับชำนาญการ (CH-12) จำนวน 6 ตัว', price: 7800, itemStatus: 'pending',
+                    assets: [
+                    { id: 'a-2', assetNumber: 'OF-67-002', assetName: 'เก้าอี้หน้าโต๊ะ ตัวที่ 1', image: null, status: 'purchased' },
+                    { id: 'a-3', assetNumber: 'OF-67-003', assetName: 'เก้าอี้หน้าโต๊ะ ตัวที่ 2', image: null, status: 'purchased' },
+                    { id: 'a-4', assetNumber: 'OF-67-004', assetName: 'เก้าอี้หน้าโต๊ะ ตัวที่ 3', image: null, status: 'purchased' },
+                    { id: 'a-5', assetNumber: 'OF-67-005', assetName: 'เก้าอี้หน้าโต๊ะ ตัวที่ 4', image: null, status: 'pending' },
+                    { id: 'a-6', assetNumber: 'OF-67-006', assetName: 'เก้าอี้หน้าโต๊ะ ตัวที่ 5', image: null, status: 'pending' },
+                    { id: 'a-7', assetNumber: 'OF-67-007', assetName: 'เก้าอี้หน้าโต๊ะ ตัวที่ 6', image: null, status: 'pending' },
+                    ]
+                },
+                { id: 'i-1-3', description: 'เก้าอี้หน้าโต๊ะระดับชำนาญงาน (CH-12) จำนวน 4 ตัว', price: 5200, itemStatus: 'pending', assets: [] },
+                { id: 'i-1-4', description: 'เก้าอี้หน้าโต๊ะระดับปฏิบัติการ (CH-12) จำนวน 2 ตัว', price: 2600, itemStatus: 'pending', assets: [] },
+                ]
+            },
+            {
+                id: 'g-2',
+                docId: 'TR-2567-0001',
+                title: 'รายการ เครื่องถ่ายเอกสาร ระบบดิจิทัล (ขาว-ดำ) ความเร็ว 50 แผ่นต่อนาที',
+                items: [
+                { id: 'i-2-1', description: 'เครื่องถ่ายเอกสาร ระบบดิจิทัล (ขาว-ดำ) ความเร็ว 50 แผ่นต่อนาที จำนวน 1 เครื่อง', price: 188000, itemStatus: 'pending', assets: [] }
+                ]
+            }
         ];
 
-        // State ศูนย์กลาง (คล้ายการใช้ useState ใน React)
-        let state = {
-            view: 'list', // 'list' | 'detail'
-            selectedDocId: null,
-            searchTerm: '',
-            
-            documents: JSON.parse(JSON.stringify(INITIAL_DOCUMENTS)),
-            equipmentGroups: JSON.parse(JSON.stringify(INITIAL_EQUIPMENT_GROUPS)),
-            expandedGroups: ['g-1', 'g-2', 'g-3'],
-            
-            activeMenu: null,
-            isSavingDoc: false,
-            saveSuccess: false,
-
-            // Modal States & Temp Data
-            modals: {
-                create: false,
-                group: false,
-                subItem: false,
-                delete: false,
-                preview: false
-            },
-            
-            createMode: 'manual', // 'manual' | 'excel'
-            parsedCreateData: null,
-            createFileName: null,
-
-            editingGroup: null, // null = add, object = edit
-            
-            targetGroupId: null,
-            editingSubItem: null,
-            subItemCreateMode: 'manual', // 'manual' | 'excel'
-            parsedSubItems: null,
-            subItemFileName: null,
-            isSubItemParsing: false,
-
-            deleteTarget: { type: null, groupId: null, itemId: null },
-            previewFile: null
+        // --- Helper Components ---
+        const StatusBadge = ({ status }) => {
+            if (status === 'completed') {
+                return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" /> โอนจัดสรรแล้ว</span>;
+            } else if (status === 'pending') {
+                return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><Clock className="w-3 h-3 mr-1" /> อยู่ระหว่างดำเนินการ</span>;
+            } else if (status === 'untransferred') {
+                return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><X className="w-3 h-3 mr-1" /> ยังไม่โอนจัดสรร</span>;
+            }
+            return null;
         };
 
-        // ฟังก์ชันช่วยเหลือสำหรับหลีกเลี่ยง XSS และข้อผิดพลาดจากเครื่องหมายคำพูด
-        const escapeHTML = (str) => {
-            if (typeof str !== 'string') return str;
-            return str.replace(/[&<>'"]/g, tag => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-            }[tag]));
-        };
+        const SemiCircleGauge = ({ percent, color }) => {
+            const radius = 40;
+            const circumference = Math.PI * radius;
+            const strokeDashoffset = circumference - (percent / 100) * circumference;
 
-        const formatNumber = (num) => Number(num).toLocaleString('th-TH');
-
-        // --- 2. ฟังก์ชันเรนเดอร์ UI ---
-        function render() {
-            const app = document.getElementById('app');
-            app.innerHTML = `
-                <div class="min-h-screen p-4 md:p-8">
-                    <div class="max-w-6xl mx-auto relative">
-                        ${state.view === 'list' ? `
-                        <header class="mb-8">
-                            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">ระบบจัดสรรงบประมาณและครุภัณฑ์</h1>
-                            <p class="text-gray-500 mt-1">อ้างอิงฟอร์แมต: เอกสารการโอนเงินงบประมาณ/ค่าครุภัณฑ์</p>
-                        </header>
-                        ` : ''}
-                        
-                        <main>
-                            ${state.view === 'list' ? renderListView() : renderDetailView()}
-                        </main>
-                        
-                        <!-- เรนเดอร์ Modals -->
-                        ${renderCreateModal()}
-                        ${renderGroupModal()}
-                        ${renderSubItemModal()}
-                        ${renderDeleteConfirmModal()}
-                        ${renderFilePreviewModal()}
-                    </div>
+            return (
+                <div className="relative flex flex-col items-center justify-center w-36 h-24">
+                <svg className="w-full h-full overflow-visible" viewBox="0 0 100 55">
+                    <path d="M 10,45 A 40,40 0 0,1 90,45" fill="none" stroke="#e5e7eb" strokeWidth="10" strokeLinecap="round" />
+                    <path 
+                    d="M 10,45 A 40,40 0 0,1 90,45" 
+                    fill="none" 
+                    stroke={color} 
+                    strokeWidth="10" 
+                    strokeLinecap="round" 
+                    strokeDasharray={circumference} 
+                    strokeDashoffset={strokeDashoffset} 
+                    className="transition-all duration-1000 ease-out" 
+                    />
+                </svg>
+                <div className="absolute bottom-1 flex flex-col items-center">
+                    <span className="text-3xl font-black text-gray-900">{percent}%</span>
                 </div>
-            `;
-            // หลังจากอัปเดต DOM ให้วาดไอคอน Lucide ใหม่
-            lucide.createIcons();
-        }
+                </div>
+            );
+        };
 
-        // --- View: List View ---
-        function renderListView() {
-            const lowerSearch = state.searchTerm.toLowerCase();
-            const filteredDocs = state.documents.filter(doc => {
-                const matchDocFields = doc.id.toLowerCase().includes(lowerSearch) || 
-                                       doc.destination.toLowerCase().includes(lowerSearch) ||
-                                       (doc.notes && doc.notes.toLowerCase().includes(lowerSearch));
-                const docGroups = state.equipmentGroups.filter(g => g.docId === doc.id);
+        const loadSheetJS = () => {
+            return new Promise((resolve, reject) => {
+                if (window.XLSX) return resolve(window.XLSX);
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+                script.onload = () => resolve(window.XLSX);
+                script.onerror = reject;
+                document.body.appendChild(script);
+            });
+        };
+
+        // --- Main Application Component ---
+        function App() {
+            const [currentView, setCurrentView] = useState('list');
+            const [selectedDocId, setSelectedDocId] = useState(null);
+            const [searchTerm, setSearchTerm] = useState('');
+            
+            const [documents, setDocuments] = useState(INITIAL_DOCUMENTS);
+            const [equipmentGroups, setEquipmentGroups] = useState(INITIAL_EQUIPMENT_GROUPS);
+            const [expandedGroups, setExpandedGroups] = useState(['g-1', 'g-2', 'g-3']);
+            const [expandedSubItems, setExpandedSubItems] = useState([]);
+
+            const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+            const [createMode, setCreateMode] = useState('manual');
+            const [formData, setFormData] = useState({ id: '', date: '', destination: '' });
+            
+            const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+            const [groupCreateMode, setGroupCreateMode] = useState('manual'); // 'manual' | 'excel'
+            const [editingGroup, setEditingGroup] = useState(null); 
+            const [groupFormData, setGroupFormData] = useState({ title: '' });
+            const [groupFile, setGroupFile] = useState(null);
+            const [isGroupParsing, setIsGroupParsing] = useState(false);
+            const [parsedGroups, setParsedGroups] = useState(null);
+
+            const [isSubItemModalOpen, setIsSubItemModalOpen] = useState(false);
+            const [targetGroupId, setTargetGroupId] = useState(null);
+            const [editingSubItem, setEditingSubItem] = useState(null); 
+            const [subItemFormData, setSubItemFormData] = useState({ description: '', price: '', itemStatus: 'pending', assets: [] });
+
+            const [subItemCreateMode, setSubItemCreateMode] = useState('manual'); 
+            const [subItemFile, setSubItemFile] = useState(null);
+            const [isSubItemParsing, setIsSubItemParsing] = useState(false);
+            const [parsedSubItems, setParsedSubItems] = useState(null);
+
+            const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, type: null, groupId: null, itemId: null });
+            const [activeMenu, setActiveMenu] = useState(null);
+            const [assetImagePreview, setAssetImagePreview] = useState({ isOpen: false, imageUrl: null, title: '' });
+
+            const [selectedFile, setSelectedFile] = useState(null);
+            const [isParsing, setIsParsing] = useState(false);
+            const [parsedData, setParsedData] = useState(null);
+
+            const [isSavingDoc, setIsSavingDoc] = useState(false);
+            const [saveSuccess, setSaveSuccess] = useState(false);
+
+            // Search filter
+            const filteredDocs = documents.filter(doc => {
+                const lowerSearch = searchTerm.toLowerCase();
+                const matchDocFields = 
+                doc.id.toLowerCase().includes(lowerSearch) ||
+                doc.destination.toLowerCase().includes(lowerSearch) ||
+                (doc.notes && doc.notes.toLowerCase().includes(lowerSearch));
+                
+                const docGroups = equipmentGroups.filter(g => g.docId === doc.id);
                 const matchGroupsOrItems = docGroups.some(group => {
-                    if (group.title.toLowerCase().includes(lowerSearch)) return true;
-                    return group.items.some(item => 
-                        item.description.toLowerCase().includes(lowerSearch) ||
-                        (item.assetNumber && item.assetNumber.toLowerCase().includes(lowerSearch))
-                    );
+                if (group.title.toLowerCase().includes(lowerSearch)) return true;
+                return group.items.some(item => {
+                    if (item.description.toLowerCase().includes(lowerSearch)) return true;
+                    if (item.assets && item.assets.some(a => a.assetNumber.toLowerCase().includes(lowerSearch))) return true;
+                    return false;
+                });
                 });
                 return matchDocFields || matchGroupsOrItems;
             });
 
-            return `
-            <div class="space-y-4">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100 gap-4">
-                    <div>
-                        <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="file-text" class="text-blue-600 w-5 h-5"></i>รายการใบโอนจัดสรร</h2>
-                    </div>
-                    <button onclick="openCreateModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
-                        <i data-lucide="plus" class="w-4 h-4"></i> สร้างใบโอนใหม่
-                    </button>
-                </div>
-                
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="p-4 border-b border-gray-100">
-                        <div class="relative w-full sm:w-72">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center"><i data-lucide="search" class="h-4 w-4 text-gray-400"></i></div>
-                            <input type="text" id="searchInput" onkeyup="handleSearch(event)" value="${escapeHTML(state.searchTerm)}" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="ค้นหา..." />
-                        </div>
-                    </div>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">หมายเลขใบโอน</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">วันที่โอน</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">ปลายทาง</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">จำนวนหัวข้อ</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">สถานะ</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">จัดการ</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                ${filteredDocs.length > 0 ? filteredDocs.map(doc => {
-                                    const groupCount = state.equipmentGroups.filter(g => g.docId === doc.id).length;
-                                    return `
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            ${doc.attachedFile ? `
-                                            <button onclick="handleOpenPreview('${doc.id}')" class="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5 group outline-none" title="คลิกเพื่อดูไฟล์แนบ: ${escapeHTML(doc.attachedFile)}">
-                                                ${escapeHTML(doc.id)}
-                                                <i data-lucide="paperclip" class="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-600 transition-colors"></i>
-                                            </button>
-                                            ` : `<span class="text-blue-600">${escapeHTML(doc.id)}</span>`}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">${new Date(doc.date).toLocaleDateString('th-TH')}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">${escapeHTML(doc.destination)}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">${groupCount} หัวข้อหลัก</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-center">${renderStatusBadge(doc.status)}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                                            <button onclick="handleViewDocument('${doc.id}')" class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md flex items-center gap-1 mx-auto text-sm transition-colors"><i data-lucide="eye" class="w-4 h-4"></i> ดูรายละเอียด</button>
-                                        </td>
-                                    </tr>
-                                    `;
-                                }).join('') : `
-                                    <tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">ไม่พบเอกสารที่ค้นหา</td></tr>
-                                `}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            `;
-        }
+            const selectedDocument = documents.find(doc => doc.id === selectedDocId);
+            const relatedGroups = equipmentGroups.filter(g => g.docId === selectedDocId);
 
-        // --- View: Detail View ---
-        function renderDetailView() {
-            const doc = state.documents.find(d => d.id === state.selectedDocId);
-            if (!doc) return '';
-
-            const relatedGroups = state.equipmentGroups.filter(g => g.docId === doc.id);
-            const allSubItems = relatedGroups.flatMap(g => g.items);
-            const totalItemsCount = allSubItems.length;
-            const purchasedItemsCount = allSubItems.filter(i => i.itemStatus === 'purchased').length;
-            
-            const grandTotal = allSubItems.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
-            const purchasedTotal = allSubItems.filter(i => i.itemStatus === 'purchased').reduce((sum, item) => sum + (Number(item.price) || 0), 0);
-
-            const itemsPercent = totalItemsCount === 0 ? 0 : Math.round((purchasedItemsCount / totalItemsCount) * 100);
-            const moneyPercent = grandTotal === 0 ? 0 : Math.round((purchasedTotal / grandTotal) * 100);
-
-            const allGroupIds = relatedGroups.map(g => g.id);
-            const isAllExpanded = allGroupIds.length > 0 && state.expandedGroups.length === allGroupIds.length;
-
-            return `
-            <div class="space-y-6 animate-in duration-300">
-                
-                <!-- ส่วนปุ่มกดด้านบนสุดของหน้า -->
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div class="flex items-center gap-4">
-                        <button onclick="handleBackToList()" class="p-2 hover:bg-gray-200 bg-white rounded-full transition-colors shadow-sm"><i data-lucide="arrow-left" class="w-5 h-5 text-gray-700"></i></button>
-                        <h2 class="text-xl font-bold text-gray-800">รายละเอียดใบโอนจัดสรร</h2>
-                    </div>
-                </div>
-
-                <!-- ข้อมูล Header และ ความคืบหน้า -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    
-                    <div class="p-6 md:p-8">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-100 pb-4 mb-4 gap-4">
-                            <div>
-                                <p class="text-sm text-gray-500 mb-1">หมายเลขใบโอน</p>
-                                ${doc.attachedFile ? `
-                                <button onclick="handleOpenPreview('${doc.id}')" class="text-2xl font-bold text-blue-700 hover:text-blue-900 flex items-center gap-3 group outline-none transition-colors" title="ดูไฟล์แนบ: ${escapeHTML(doc.attachedFile)}">
-                                    <span class="group-hover:underline">${escapeHTML(doc.id)}</span>
-                                    <span class="bg-blue-50 border border-blue-100 text-blue-600 text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm group-hover:bg-blue-100 transition-colors">
-                                        <i data-lucide="paperclip" class="w-3.5 h-3.5"></i> มีไฟล์แนบ
-                                    </span>
-                                </button>
-                                ` : `<h3 class="text-2xl font-bold text-blue-700">${escapeHTML(doc.id)}</h3>`}
-                            </div>
-                            <div class="w-full md:w-auto text-left md:text-right">
-                                <p class="text-sm text-gray-500 mb-1">สถานะเอกสาร</p>
-                                <select onchange="handleStatusChange(event)" class="block w-full md:w-48 text-sm rounded-md border p-2 font-bold outline-none transition-colors cursor-pointer 
-                                    ${doc.status === 'completed' ? 'bg-green-100 text-green-800 border-green-200' : 
-                                      doc.status === 'pending' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-red-100 text-red-800 border-red-200'}">
-                                    <option value="completed" ${doc.status === 'completed' ? 'selected' : ''} class="bg-white text-gray-900">โอนจัดสรรแล้ว</option>
-                                    <option value="pending" ${doc.status === 'pending' ? 'selected' : ''} class="bg-white text-gray-900">อยู่ระหว่างดำเนินการ</option>
-                                    <option value="untransferred" ${doc.status === 'untransferred' ? 'selected' : ''} class="bg-white text-gray-900">ยังไม่โอนจัดสรร</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="flex items-start gap-3"><i data-lucide="calendar" class="w-5 h-5 text-gray-400 mt-0.5"></i><div><p class="text-sm font-medium text-gray-500">วันที่ทำรายการ</p><p class="text-gray-900">${new Date(doc.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p></div></div>
-                            <div class="flex items-start gap-3"><i data-lucide="map-pin" class="w-5 h-5 text-blue-500 mt-0.5"></i><div><p class="text-sm font-medium text-blue-600">หน่วยงานปลายทาง (ผู้รับ)</p><p class="text-gray-900 font-medium">${escapeHTML(doc.destination)}</p></div></div>
-                        </div>
-                    </div>
-
-                    <div class="p-6 md:p-8 border-t border-gray-100 bg-gray-50/30">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-100">
-                            <!-- Progress 1 -->
-                            <div class="flex flex-col sm:flex-row items-center justify-center gap-6 p-2">
-                                ${renderSemiCircleGauge(itemsPercent, "#10b981")}
-                                <div class="flex flex-col space-y-3">
-                                   <h4 class="text-gray-600 font-bold text-sm text-center sm:text-left">ความคืบหน้าการจัดซื้อ</h4>
-                                   <div class="text-center sm:text-left">
-                                     <p class="text-xs text-gray-400 font-medium">สถานะปัจจุบัน</p>
-                                     <p class="text-xl font-bold ${itemsPercent === 100 ? 'text-green-600' : 'text-blue-600'}">
-                                       ${itemsPercent === 100 ? 'ดำเนินการแล้วเสร็จ' : 'กำลังดำเนินการ'}
-                                     </p>
-                                   </div>
-                                   <div class="flex items-center justify-center sm:justify-start gap-2 text-sm text-gray-600 font-medium">
-                                     <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
-                                     ผลสำเร็จ: ${purchasedItemsCount} / ${totalItemsCount} รายการ
-                                   </div>
-                                </div>
-                            </div>
-                            <!-- Progress 2 -->
-                            <div class="flex flex-col sm:flex-row items-center justify-center gap-6 p-2 md:pl-8">
-                                ${renderSemiCircleGauge(moneyPercent, "#3b82f6")}
-                                <div class="flex flex-col space-y-3 w-full max-w-[200px]">
-                                   <h4 class="text-gray-600 font-bold text-sm text-center sm:text-left">งบประมาณ</h4>
-                                   <div class="text-center sm:text-left">
-                                     <p class="text-xs text-gray-400 font-medium">จำนวนเงินที่ได้รับจัดสรร</p>
-                                     <p class="text-xl font-bold text-gray-900">${formatNumber(grandTotal)} บ.</p>
-                                   </div>
-                                   <div class="flex flex-col text-sm text-gray-600 font-medium space-y-1.5">
-                                     <div class="flex items-center gap-2">
-                                       <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                                       <span>ใช้ไป: ${formatNumber(purchasedTotal)} บ.</span>
-                                     </div>
-                                     <div class="flex items-center gap-2">
-                                       <span class="w-2.5 h-2.5 rounded-full bg-gray-300"></span>
-                                       <span>เหลือ: ${formatNumber(grandTotal - purchasedTotal)} บ.</span>
-                                     </div>
-                                   </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ตารางรายการครุภัณฑ์ -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="p-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i data-lucide="package" class="text-gray-600 w-5 h-5"></i> รายการครุภัณฑ์ที่โอนจัดสรร</h3>
-                            <p class="text-sm text-gray-500 mt-1">ยอดเงินรวมทั้งสิ้น: <span class="font-bold text-green-600">${formatNumber(grandTotal)} บาท</span></p>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="toggleExpandAll()" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-colors">
-                                ${isAllExpanded ? '<i data-lucide="chevrons-up" class="w-4 h-4"></i> ย่อทั้งหมด' : '<i data-lucide="chevrons-down" class="w-4 h-4"></i> ขยายทั้งหมด'}
-                            </button>
-                            <button onclick="openGroupModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-colors">
-                                <i data-lucide="plus" class="w-4 h-4"></i> เพิ่มหัวข้อหลัก
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-100">
-                                <tr>
-                                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase w-16">ลำดับ</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase w-48">หมายเลขครุภัณฑ์</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase">รายการ</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase w-32">จำนวนเงิน (บาท)</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase w-40">สถานะ</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase w-24">จัดการ</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                ${relatedGroups.length === 0 ? `
-                                <tr>
-                                    <td colspan="6" class="px-6 py-10 text-center text-gray-500">
-                                        ยังไม่มีรายการครุภัณฑ์ กรุณากดปุ่ม <b>"เพิ่มหัวข้อหลัก"</b>
-                                    </td>
-                                </tr>
-                                ` : ''}
-
-                                ${relatedGroups.map((group, gIndex) => {
-                                    const isExpanded = state.expandedGroups.includes(group.id);
-                                    const groupTotal = group.items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
-                                    const isAllPurchased = group.items.length > 0 && group.items.every(item => item.itemStatus === 'purchased');
-                                    
-                                    let html = `
-                                    <tr class="hover:bg-slate-200 cursor-pointer transition-colors border-b border-gray-200 ${isExpanded ? 'bg-slate-200 shadow-inner' : 'bg-slate-100'}" onclick="toggleGroupExpand('${group.id}')">
-                                        <td class="px-4 py-4 text-sm font-extrabold text-slate-900 border-l-4 ${isExpanded ? 'border-slate-500' : 'border-transparent hover:border-slate-400'}">
-                                            <div class="flex items-center gap-2">
-                                                <i data-lucide="${isExpanded ? 'chevron-down' : 'chevron-right'}" class="w-4 h-4 text-slate-700"></i>
-                                                ${gIndex + 1}
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-4 text-center text-sm font-medium text-slate-400"></td>
-                                        <td class="px-4 py-4 text-sm font-extrabold text-slate-900 whitespace-pre-wrap leading-relaxed">${escapeHTML(group.title)}</td>
-                                        <td class="px-4 py-4 text-sm font-extrabold text-slate-800 text-right">${groupTotal > 0 ? formatNumber(groupTotal) : '-'}</td>
-                                        <td class="px-4 py-4 text-center">
-                                            ${group.items.length > 0 ? `<span class="inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-full border ${isAllPurchased ? 'bg-green-100 text-green-800 border-green-300' : 'bg-yellow-100 text-yellow-800 border-yellow-300'}">${isAllPurchased ? 'จัดซื้อแล้ว' : 'อยู่ระหว่างจัดซื้อ'}</span>` : ''}
-                                        </td>
-                                        <td class="px-4 py-4 text-center relative">
-                                            <button onclick="toggleMenu(event, '${group.id}')" class="text-slate-600 hover:bg-slate-300 p-1.5 rounded-full transition-colors outline-none"><i data-lucide="more-vertical" class="w-5 h-5"></i></button>
-                                            
-                                            ${state.activeMenu === group.id ? `
-                                            <div class="fixed inset-0 z-40 cursor-default" onclick="closeMenu(event)"></div>
-                                            <div class="absolute right-8 top-8 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1 text-left cursor-default" onclick="event.stopPropagation()">
-                                                <button onclick="openSubItemModal('${group.id}')" class="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4 text-green-600"></i> เพิ่มรายการย่อย</button>
-                                                <button onclick="openGroupModal('${group.id}')" class="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"><i data-lucide="edit" class="w-4 h-4 text-blue-600"></i> แก้ไขหัวข้อหลัก</button>
-                                                <div class="border-t border-gray-100 my-1"></div>
-                                                <button onclick="confirmDelete('group', '${group.id}')" class="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><i data-lucide="trash-2" class="w-4 h-4"></i> ลบหัวข้อหลัก</button>
-                                            </div>
-                                            ` : ''}
-                                        </td>
-                                    </tr>
-                                    `;
-
-                                    if (isExpanded) {
-                                        if (group.items.length === 0) {
-                                            html += `
-                                            <tr class="bg-white">
-                                                <td class="px-4 py-3"></td>
-                                                <td colspan="5" class="px-4 py-4 text-sm text-gray-400 text-center italic">
-                                                    ยังไม่มีรายการย่อย คลิก <button onclick="openSubItemModal('${group.id}', event)" class="inline-flex items-center text-green-600 hover:underline"><i data-lucide="plus-circle" class="w-3 h-3 mx-1"></i> เพิ่มรายการย่อย</button> เพื่อเพิ่มข้อมูล
-                                                </td>
-                                            </tr>`;
-                                        } else {
-                                            html += group.items.map(item => `
-                                            <tr class="bg-white hover:bg-gray-50 transition-colors">
-                                                <td class="px-4 py-3"></td>
-                                                <td class="px-4 py-3 text-sm text-blue-600 font-mono">${escapeHTML(item.assetNumber) || '-'}</td>
-                                                <td class="px-4 py-3 text-sm text-gray-700"><div class="flex items-start"><span class="mr-2 text-gray-400">-</span><span class="whitespace-pre-wrap">${escapeHTML(item.description)}</span></div></td>
-                                                <td class="px-4 py-3 text-sm text-gray-700 text-right font-mono">${formatNumber(item.price)}</td>
-                                                <td class="px-4 py-3 text-center">
-                                                    <span class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full border ${item.itemStatus === 'purchased' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}">
-                                                        ${item.itemStatus === 'purchased' ? 'จัดซื้อแล้ว' : 'อยู่ระหว่างจัดซื้อ'}
-                                                    </span>
-                                                </td>
-                                                <td class="px-4 py-3 text-center relative">
-                                                    <button onclick="toggleMenu(event, '${item.id}')" class="text-gray-400 hover:bg-gray-100 hover:text-gray-600 p-1.5 rounded-full transition-colors outline-none"><i data-lucide="more-vertical" class="w-4 h-4"></i></button>
-                                                    
-                                                    ${state.activeMenu === item.id ? `
-                                                    <div class="fixed inset-0 z-40 cursor-default" onclick="closeMenu(event)"></div>
-                                                    <div class="absolute right-8 top-8 w-36 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1 text-left cursor-default" onclick="event.stopPropagation()">
-                                                        <button onclick="openSubItemModal('${group.id}', '${item.id}')" class="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"><i data-lucide="edit" class="w-4 h-4 text-blue-600"></i> แก้ไข</button>
-                                                        <button onclick="confirmDelete('sub', '${group.id}', '${item.id}')" class="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><i data-lucide="trash-2" class="w-4 h-4"></i> ลบ</button>
-                                                    </div>
-                                                    ` : ''}
-                                                </td>
-                                            </tr>
-                                            `).join('');
-                                        }
-                                    }
-                                    return html;
-                                }).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- ส่วนปุ่มบันทึกและแนบไฟล์ (ล่างสุด) -->
-                <div class="flex flex-col sm:flex-row justify-end items-center gap-3 pt-4 pb-8">
-                    <label class="cursor-pointer bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors w-full sm:w-auto shadow-sm">
-                        <i data-lucide="paperclip" class="w-4 h-4 text-gray-500"></i>
-                        <span class="truncate max-w-[150px]">${doc.attachedFile ? escapeHTML(doc.attachedFile) : 'แนบใบโอนจัดสรร'}</span>
-                        <input type="file" class="hidden" onchange="handleAttachFile(event)" accept=".pdf,.jpg,.jpeg,.png" />
-                    </label>
-                    <button onclick="saveDocumentDetail()" ${state.isSavingDoc ? 'disabled' : ''} class="px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all w-full sm:w-auto shadow-sm
-                        ${state.saveSuccess ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-blue-600 text-white hover:bg-blue-700'} 
-                        ${state.isSavingDoc ? 'opacity-80 cursor-not-allowed' : ''}">
-                        ${state.isSavingDoc ? '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> กำลังบันทึก...' : 
-                          state.saveSuccess ? '<i data-lucide="check-circle" class="w-4 h-4"></i> บันทึกสำเร็จ' : 
-                          '<i data-lucide="save" class="w-4 h-4"></i> บันทึกข้อมูลเอกสาร'}
-                    </button>
-                </div>
-            </div>
-            `;
-        }
-
-        // --- UI Helper Functions ---
-        function renderStatusBadge(status) {
-            if (status === 'completed') return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><i data-lucide="check-circle" class="w-3 h-3 mr-1"></i> โอนจัดสรรแล้ว</span>`;
-            if (status === 'pending') return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><i data-lucide="clock" class="w-3 h-3 mr-1"></i> อยู่ระหว่างดำเนินการ</span>`;
-            if (status === 'untransferred') return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><i data-lucide="x" class="w-3 h-3 mr-1"></i> ยังไม่โอนจัดสรร</span>`;
-            return '';
-        }
-
-        function renderSemiCircleGauge(percent, color) {
-            const radius = 40;
-            const circumference = Math.PI * radius;
-            const strokeDashoffset = circumference - (percent / 100) * circumference;
-            return `
-            <div class="relative flex flex-col items-center justify-center w-36 h-24">
-                <svg class="w-full h-full overflow-visible" viewBox="0 0 100 55">
-                    <path d="M 10,45 A 40,40 0 0,1 90,45" fill="none" stroke="#e5e7eb" stroke-width="10" stroke-linecap="round" />
-                    <path d="M 10,45 A 40,40 0 0,1 90,45" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${circumference}" stroke-dashoffset="${strokeDashoffset}" class="transition-all duration-1000 ease-out" />
-                </svg>
-                <div class="absolute bottom-1 flex flex-col items-center">
-                    <span class="text-3xl font-black text-gray-900">${percent}%</span>
-                </div>
-            </div>
-            `;
-        }
-
-        // --- Modals Renderers ---
-        function renderCreateModal() {
-            if (!state.modals.create) return '';
-            return `
-            <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50 px-4">
-                <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
-                    <div class="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50 shrink-0">
-                        <h3 class="text-lg font-bold text-gray-800">สร้างใบโอนจัดสรรใหม่</h3>
-                        <button onclick="closeModal('create')" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-                    </div>
-                    <div class="flex border-b border-gray-200 shrink-0">
-                        <button onclick="setCreateMode('manual')" class="flex-1 py-3 text-sm font-medium border-b-2 outline-none ${state.createMode === 'manual' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'}">กรอกข้อมูลเอง</button>
-                        <button onclick="setCreateMode('excel')" class="flex-1 py-3 text-sm font-medium border-b-2 outline-none flex justify-center items-center gap-2 ${state.createMode === 'excel' ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500'}"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> อัปโหลดไฟล์ Excel</button>
-                    </div>
-                    <div class="overflow-y-auto p-6">
-                        ${state.createMode === 'manual' ? `
-                        <form id="createDocForm" onsubmit="handleCreateManualSubmit(event)" class="space-y-4">
-                            <div><label class="block text-sm font-medium text-gray-700 mb-1">หมายเลขใบโอน</label><input type="text" id="createDocId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" /></div>
-                            <div><label class="block text-sm font-medium text-gray-700 mb-1">วันที่โอน</label><input type="date" id="createDocDate" required class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" /></div>
-                            <div><label class="block text-sm font-medium text-gray-700 mb-1">ปลายทาง</label><input type="text" id="createDocDest" required class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" /></div>
-                        </form>
-                        ` : `
-                        <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 transition-colors relative">
-                            <input type="file" accept=".xlsx, .xls, .csv" onchange="handleExcelUpload(event, 'doc')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                            ${state.isParsing ? `
-                                <div class="flex flex-col items-center text-blue-600"><i data-lucide="loader-2" class="w-10 h-10 animate-spin mb-3"></i><p class="font-medium">กำลังอ่านข้อมูล...</p></div>
-                            ` : state.parsedCreateData ? `
-                                <div class="flex flex-col items-center text-green-600"><i data-lucide="check-circle" class="w-10 h-10 mb-3"></i><p class="font-medium">อ่านข้อมูลสำเร็จ: ${state.createFileName}</p><p class="text-sm mt-2 text-gray-600">พบ ${state.parsedCreateData.items.length} รายการ</p></div>
-                            ` : `
-                                <i data-lucide="upload-cloud" class="w-12 h-12 text-gray-400 mb-3 mx-auto"></i>
-                                <p class="text-lg font-medium text-gray-700 mb-1">ลากไฟล์มาวาง หรือ คลิกเพื่อเลือกไฟล์</p>
-                                <p class="text-sm text-gray-500">รองรับไฟล์ .xlsx, .xls, .csv</p>
-                                <p class="text-xs text-blue-500 mt-2 inline-block bg-blue-50 px-3 py-1 rounded-full border border-blue-100">รูปแบบคอลัมน์: A=หมายเลข, B=รายการ, C=ราคา</p>
-                            `}
-                        </div>
-                        `}
-                    </div>
-                    <div class="p-4 border-t border-gray-100 bg-gray-50 flex gap-3">
-                        <button onclick="closeModal('create')" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">ยกเลิก</button>
-                        ${state.createMode === 'manual' ? 
-                          `<button type="submit" form="createDocForm" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">สร้างและไปเพิ่มรายการ</button>` : 
-                          `<button onclick="handleCreateExcelSubmit()" ${!state.parsedCreateData ? 'disabled' : ''} class="flex-1 px-4 py-2 rounded-lg transition-colors ${state.parsedCreateData ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}">ยืนยันนำเข้า</button>`}
-                    </div>
-                </div>
-            </div>
-            `;
-        }
-
-        function renderGroupModal() {
-            if (!state.modals.group) return '';
-            const isEdit = state.editingGroup !== null;
-            const titleValue = isEdit ? escapeHTML(state.editingGroup.title) : '';
-            return `
-            <div class="fixed inset-0 z-[70] flex items-center justify-center bg-black bg-opacity-50 px-4">
-                <div class="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95">
-                    <div class="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50">
-                        <h3 class="text-lg font-bold text-gray-800">${isEdit ? 'แก้ไขหัวข้อหลัก' : 'เพิ่มหัวข้อหลักใหม่'}</h3>
-                        <button onclick="closeModal('group')" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-                    </div>
-                    <form id="groupForm" onsubmit="handleGroupSubmit(event)" class="p-6 space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อหัวข้อหลัก</label>
-                            <textarea id="groupTitleInput" required class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]" placeholder="เช่น 1. รายการ ชุดโต๊ะทำงาน เก้าอี้ทำงาน...">${titleValue}</textarea>
-                        </div>
-                        <div class="pt-4 flex gap-3">
-                            <button type="button" onclick="closeModal('group')" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
-                            <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">บันทึก</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            `;
-        }
-
-        function renderSubItemModal() {
-            if (!state.modals.subItem) return '';
-            const isEdit = state.editingSubItem !== null;
-            const item = state.editingSubItem || { assetNumber: '', description: '', price: '', itemStatus: 'pending' };
-
-            return `
-            <div class="fixed inset-0 z-[70] flex items-center justify-center bg-black bg-opacity-50 px-4">
-                <div class="bg-white rounded-xl shadow-xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
-                    <div class="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50 shrink-0">
-                        <h3 class="text-lg font-bold text-gray-800">${isEdit ? 'แก้ไขรายการย่อย' : 'เพิ่มรายการย่อย'}</h3>
-                        <button onclick="closeModal('subItem')" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-                    </div>
-
-                    ${!isEdit ? `
-                    <div class="flex border-b border-gray-200 shrink-0">
-                        <button onclick="setSubItemMode('manual')" class="flex-1 py-3 text-sm font-medium border-b-2 outline-none transition-colors ${state.subItemCreateMode === 'manual' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}">กรอกข้อมูลเอง</button>
-                        <button onclick="setSubItemMode('excel')" class="flex-1 py-3 text-sm font-medium border-b-2 outline-none transition-colors flex items-center justify-center gap-2 ${state.subItemCreateMode === 'excel' ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> อัปโหลดไฟล์ Excel</button>
-                    </div>
-                    ` : ''}
-
-                    <div class="overflow-y-auto p-6">
-                        ${state.subItemCreateMode === 'manual' ? `
-                        <form id="subItemForm" onsubmit="handleSubItemSubmit(event)" class="space-y-4">
-                            <div><label class="block text-sm font-medium text-gray-700 mb-1">หมายเลขครุภัณฑ์ (ถ้ามี)</label><input type="text" id="subAsset" value="${escapeHTML(item.assetNumber)}" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="เช่น IT-67-001 หรือ IT-001 ถึง 005" /></div>
-                            <div><label class="block text-sm font-medium text-gray-700 mb-1">รายละเอียดรายการ</label><input type="text" id="subDesc" required value="${escapeHTML(item.description)}" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="เช่น - ชุดโต๊ะทำงานระดับปฏิบัติการ จำนวน 1 ชุด" /></div>
-                            <div><label class="block text-sm font-medium text-gray-700 mb-1">จำนวนเงิน (บาท)</label><input type="number" id="subPrice" required value="${item.price}" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="0.00" /></div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
-                                <select id="subStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="pending" ${item.itemStatus === 'pending' ? 'selected' : ''}>อยู่ระหว่างจัดซื้อ</option>
-                                    <option value="purchased" ${item.itemStatus === 'purchased' ? 'selected' : ''}>จัดซื้อแล้ว</option>
-                                </select>
-                            </div>
-                        </form>
-                        ` : `
-                        <div class="space-y-6">
-                            ${!state.parsedSubItems ? `
-                            <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 transition-colors relative">
-                                <input type="file" accept=".xlsx, .xls, .csv" onchange="handleExcelUpload(event, 'subItem')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                                ${state.isSubItemParsing ? `
-                                <div class="flex flex-col items-center text-blue-600"><i data-lucide="loader-2" class="w-10 h-10 animate-spin mb-3"></i><p class="font-medium">กำลังอ่านข้อมูล...</p></div>
-                                ` : `
-                                <i data-lucide="upload-cloud" class="w-12 h-12 text-gray-400 mb-3 mx-auto"></i>
-                                <p class="text-lg font-medium text-gray-700 mb-1">ลากไฟล์มาวาง หรือ คลิกเพื่อเลือกไฟล์</p>
-                                <p class="text-sm">รองรับไฟล์ .xlsx, .xls, .csv สำหรับนำเข้ารายการย่อยทีละหลายรายการ</p>
-                                <p class="text-xs text-blue-500 mt-2 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 inline-block">รูปแบบคอลัมน์: A=หมายเลข, B=รายการ, C=ราคา</p>
-                                `}
-                            </div>
-                            ` : `
-                            <div class="space-y-4 animate-in">
-                                <div class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-start gap-3">
-                                    <i data-lucide="file-spreadsheet" class="w-5 h-5 mt-0.5"></i>
-                                    <div class="flex-1">
-                                        <p class="font-medium">อ่านข้อมูลสำเร็จ: ${state.subItemFileName}</p>
-                                        <p class="text-sm opacity-80">พบรายการที่ต้องการนำเข้า ${state.parsedSubItems.length} รายการ</p>
-                                    </div>
-                                    <button onclick="clearSubItemExcel()" class="text-sm text-green-700 underline font-medium whitespace-nowrap outline-none">เปลี่ยนไฟล์</button>
-                                </div>
-                                <div class="border border-gray-200 rounded-lg overflow-hidden">
-                                    <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 text-sm font-semibold text-gray-700">ตัวอย่างรายการนำเข้า (Preview)</div>
-                                    <table class="min-w-full divide-y divide-gray-200 text-sm">
-                                        <thead class="bg-gray-50"><tr><th class="px-4 py-2 text-left text-gray-500">หมายเลข</th><th class="px-4 py-2 text-left text-gray-500">รายการ</th><th class="px-4 py-2 text-right text-gray-500">ราคา</th></tr></thead>
-                                        <tbody class="divide-y divide-gray-200 bg-white">
-                                            ${state.parsedSubItems.slice(0,5).map(i => `<tr><td class="px-4 py-2 text-gray-900">${escapeHTML(i.assetNumber) || '-'}</td><td class="px-4 py-2 text-gray-700 truncate max-w-[200px]">${escapeHTML(i.description)}</td><td class="px-4 py-2 text-gray-500 text-right">${formatNumber(i.price)}</td></tr>`).join('')}
-                                            ${state.parsedSubItems.length > 5 ? `<tr><td colspan="3" class="px-4 py-2 text-center text-gray-500 italic">... และอีก ${state.parsedSubItems.length - 5} รายการ</td></tr>` : ''}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            `}
-                        </div>
-                        `}
-                    </div>
-                    
-                    <div class="p-4 border-t border-gray-100 bg-gray-50 flex gap-3 shrink-0">
-                        <button type="button" onclick="closeModal('subItem')" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
-                        ${state.subItemCreateMode === 'manual' ? `
-                            <button type="submit" form="subItemForm" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">${isEdit ? 'บันทึกการแก้ไข' : 'เพิ่มรายการ'}</button>
-                        ` : `
-                            <button type="button" onclick="handleExcelSubItemSubmit()" ${!state.parsedSubItems ? 'disabled' : ''} class="flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${state.parsedSubItems ? 'bg-green-600 hover:bg-green-700 text-white shadow-sm' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}">นำเข้ารายการย่อย</button>
-                        `}
-                    </div>
-                </div>
-            </div>
-            `;
-        }
-
-        function renderDeleteConfirmModal() {
-            if (!state.modals.delete) return '';
-            const msg = state.deleteTarget.type === 'group' 
-                ? 'คุณต้องการลบหัวข้อหลักนี้และรายการย่อยทั้งหมดใช่หรือไม่?' 
-                : 'คุณต้องการลบรายการย่อยนี้ใช่หรือไม่?';
-
-            return `
-            <div class="fixed inset-0 z-[80] flex items-center justify-center bg-black bg-opacity-50 px-4">
-                <div class="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
-                    <div class="p-6">
-                        <h3 class="text-lg font-bold text-gray-800 mb-2">ยืนยันการลบ</h3>
-                        <p class="text-gray-600 text-sm mb-6">${msg}</p>
-                        <div class="flex gap-3">
-                            <button onclick="closeModal('delete')" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
-                            <button onclick="executeDelete()" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">ลบข้อมูล</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            `;
-        }
-
-        function renderFilePreviewModal() {
-            if (!state.modals.preview || !state.previewFile) return '';
-            const isImage = state.previewFile.type && state.previewFile.type.startsWith('image/');
-
-            return `
-            <div class="fixed inset-0 z-[90] flex items-center justify-center bg-black bg-opacity-75 px-4" onclick="closeModal('preview')">
-                <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95" onclick="event.stopPropagation()">
-                    <div class="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50 shrink-0">
-                        <h3 class="text-lg font-bold flex items-center gap-2 text-gray-800">
-                            <i data-lucide="paperclip" class="w-5 h-5 text-blue-600"></i> ${escapeHTML(state.previewFile.name)}
-                        </h3>
-                        <button onclick="closeModal('preview')" class="text-gray-500 hover:text-gray-800 bg-gray-200 hover:bg-gray-300 p-1.5 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
-                    </div>
-                    <div class="flex-1 overflow-auto p-4 bg-gray-100 flex items-center justify-center min-h-[50vh]">
-                        ${isImage ? `
-                            <img src="${state.previewFile.url}" alt="preview" class="max-w-full max-h-full object-contain shadow-sm border border-gray-200 bg-white" />
-                        ` : `
-                            <iframe src="${state.previewFile.url}" class="w-full h-full min-h-[60vh] border-0 bg-white shadow-sm" title="File Preview"></iframe>
-                        `}
-                    </div>
-                    <div class="p-4 border-t border-gray-200 bg-white flex justify-end shrink-0">
-                        <a href="${state.previewFile.url}" download="${state.previewFile.name}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm font-medium transition-colors">
-                            ดาวน์โหลดไฟล์
-                        </a>
-                    </div>
-                </div>
-            </div>
-            `;
-        }
-
-        // --- 3. ฟังก์ชันการจัดการ (Event Handlers) ---
-        
-        // Navigation / Main Actions
-        window.handleViewDocument = (id) => {
-            state.selectedDocId = id;
-            state.view = 'detail';
-            state.saveSuccess = false;
-            // Auto-expand all groups in this doc
-            const groupsInDoc = state.equipmentGroups.filter(g => g.docId === id).map(g => g.id);
-            state.expandedGroups = groupsInDoc;
-            render();
-        };
-
-        window.handleBackToList = () => {
-            state.selectedDocId = null;
-            state.view = 'list';
-            state.saveSuccess = false;
-            render();
-        };
-
-        window.handleSearch = (e) => {
-            state.searchTerm = e.target.value;
-            render();
-            // Restore focus after render
-            const input = document.getElementById('searchInput');
-            if(input) {
-                input.focus();
-                const val = input.value;
-                input.value = '';
-                input.value = val;
-            }
-        };
-
-        window.handleStatusChange = (e) => {
-            const newStatus = e.target.value;
-            const docIndex = state.documents.findIndex(d => d.id === state.selectedDocId);
-            if (docIndex > -1) {
-                state.documents[docIndex].status = newStatus;
-                render();
-            }
-        };
-
-        window.saveDocumentDetail = () => {
-            state.isSavingDoc = true;
-            state.saveSuccess = false;
-            render();
-
-            setTimeout(() => {
-                state.isSavingDoc = false;
-                state.saveSuccess = true;
-                render();
-                setTimeout(() => {
-                    state.saveSuccess = false;
-                    render();
-                }, 3000);
-            }, 800);
-        };
-
-        window.handleAttachFile = (e) => {
-            const file = e.target.files[0];
-            if (file && state.selectedDocId) {
-                const fileUrl = URL.createObjectURL(file);
-                const docIndex = state.documents.findIndex(d => d.id === state.selectedDocId);
-                if (docIndex > -1) {
-                    state.documents[docIndex].attachedFile = file.name;
-                    state.documents[docIndex].attachedFileUrl = fileUrl;
-                    state.documents[docIndex].fileType = file.type;
-                    render();
-                }
-            }
-        };
-
-        window.handleOpenPreview = (id) => {
-            // ค้นหาเอกสารต้นทาง (กรณีที่มีการส่ง id เข้ามา ไม่ใช่ส่ง doc object)
-            const doc = state.documents.find(d => d.id === id);
-            if (!doc) return;
-
-            if (doc.attachedFileUrl) {
-                state.previewFile = { url: doc.attachedFileUrl, name: doc.attachedFile, type: doc.fileType };
-                state.modals.preview = true;
-                render();
-            } else if (doc.attachedFile) {
-                alert(`ไม่สามารถเปิดภาพตัวอย่างได้: "${doc.attachedFile}" เป็นเพียงข้อมูลจำลองและไม่มีเนื้อหาไฟล์จริงอยู่ในระบบ`);
-            }
-        };
-
-        // UI Interactions
-        window.toggleGroupExpand = (groupId) => {
-            if (state.expandedGroups.includes(groupId)) {
-                state.expandedGroups = state.expandedGroups.filter(id => id !== groupId);
-            } else {
-                state.expandedGroups.push(groupId);
-            }
-            render();
-        };
-
-        window.toggleExpandAll = () => {
-            const relatedGroups = state.equipmentGroups.filter(g => g.docId === state.selectedDocId);
-            const allGroupIds = relatedGroups.map(g => g.id);
-            const isAllExpanded = allGroupIds.length > 0 && state.expandedGroups.length === allGroupIds.length;
-            
-            if (isAllExpanded) {
-                state.expandedGroups = [];
-            } else {
-                state.expandedGroups = allGroupIds;
-            }
-            render();
-        };
-
-        window.toggleMenu = (e, id) => {
-            e.stopPropagation();
-            state.activeMenu = state.activeMenu === id ? null : id;
-            render();
-        };
-
-        window.closeMenu = (e) => {
-            if(e) e.stopPropagation();
-            state.activeMenu = null;
-            render();
-        };
-
-        window.closeModal = (modalName) => {
-            state.modals[modalName] = false;
-            if (modalName === 'create') {
-                state.createMode = 'manual';
-                state.parsedCreateData = null;
-                state.createFileName = null;
-            }
-            if (modalName === 'subItem') {
-                state.subItemCreateMode = 'manual';
-                state.parsedSubItems = null;
-                state.subItemFileName = null;
-            }
-            render();
-        };
-
-        // Create Document Methods
-        window.openCreateModal = () => {
-            state.modals.create = true;
-            render();
-        };
-
-        window.setCreateMode = (mode) => {
-            state.createMode = mode;
-            render();
-        };
-
-        window.handleCreateManualSubmit = (e) => {
-            e.preventDefault();
-            const id = document.getElementById('createDocId').value;
-            const date = document.getElementById('createDocDate').value;
-            const dest = document.getElementById('createDocDest').value;
-
-            if (!id || !date || !dest) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-
-            const newDoc = { id, date, destination: dest, status: 'untransferred', creator: 'ผู้ใช้ระบบ', notes: '-', attachedFile: null };
-            state.documents.unshift(newDoc);
-            
-            closeModal('create');
-            handleViewDocument(newDoc.id);
-        };
-
-        window.handleCreateExcelSubmit = () => {
-            if (!state.parsedCreateData) return;
-            const data = state.parsedCreateData;
-
-            const newDoc = { id: data.id, date: data.date, destination: data.destination, status: 'untransferred', creator: 'ผู้ใช้ระบบ', notes: `นำเข้าจากไฟล์: ${state.createFileName}`, attachedFile: null };
-            const newGroup = {
-                id: `g-${Date.now()}`,
-                docId: newDoc.id,
-                title: `รายการนำเข้าจาก Excel (${state.createFileName})`,
-                items: data.items.map((item, i) => ({ ...item, id: `i-ex-${Date.now()}-${i}` }))
+            const handleViewDocument = (id) => {
+                setSelectedDocId(id);
+                setCurrentView('detail');
+                setSaveSuccess(false); 
+                const groupsInDoc = equipmentGroups.filter(g => g.docId === id).map(g => g.id);
+                setExpandedGroups(groupsInDoc);
+                setExpandedSubItems([]);
             };
 
-            state.documents.unshift(newDoc);
-            state.equipmentGroups.push(newGroup);
-            state.expandedGroups.push(newGroup.id);
-            
-            closeModal('create');
-            handleViewDocument(newDoc.id);
-        };
+            const handleBackToList = () => {
+                setSelectedDocId(null);
+                setCurrentView('list');
+                setSaveSuccess(false);
+            };
 
-        // Group Methods
-        window.openGroupModal = (groupId = null) => {
-            state.activeMenu = null;
-            if (groupId) {
-                const group = state.equipmentGroups.find(g => g.id === groupId);
-                state.editingGroup = group ? JSON.parse(JSON.stringify(group)) : null;
-            } else {
-                state.editingGroup = null;
-            }
-            state.modals.group = true;
-            render();
-        };
+            const handleStatusChange = (id, newStatus) => {
+                setDocuments(prevDocs => prevDocs.map(doc => doc.id === id ? { ...doc, status: newStatus } : doc));
+            };
 
-        window.handleGroupSubmit = (e) => {
-            e.preventDefault();
-            const title = document.getElementById('groupTitleInput').value;
-            
-            if (state.editingGroup) {
-                const index = state.equipmentGroups.findIndex(g => g.id === state.editingGroup.id);
-                if (index > -1) state.equipmentGroups[index].title = title;
-            } else {
-                const newGroup = { id: `g-${Date.now()}`, docId: state.selectedDocId, title, items: [] };
-                state.equipmentGroups.push(newGroup);
-                state.expandedGroups.push(newGroup.id);
-            }
-            closeModal('group');
-        };
+            const handleSaveDocumentDetail = () => {
+                setIsSavingDoc(true);
+                setSaveSuccess(false);
+                setTimeout(() => {
+                setIsSavingDoc(false);
+                setSaveSuccess(true);
+                setTimeout(() => { setSaveSuccess(false); }, 3000);
+                }, 800);
+            };
 
-        // SubItem Methods
-        window.openSubItemModal = (groupId, itemId = null) => {
-            state.activeMenu = null;
-            state.targetGroupId = groupId;
-            
-            if (itemId) {
-                const group = state.equipmentGroups.find(g => g.id === groupId);
-                const item = group.items.find(i => i.id === itemId);
-                state.editingSubItem = item ? JSON.parse(JSON.stringify(item)) : null;
-                state.subItemCreateMode = 'manual'; // แก้ไขต้องเป็นแบบกรอกฟอร์มเท่านั้น
-            } else {
-                state.editingSubItem = null;
-            }
-
-            if (!state.expandedGroups.includes(groupId)) {
-                state.expandedGroups.push(groupId);
-            }
-            
-            state.modals.subItem = true;
-            render();
-        };
-
-        window.setSubItemMode = (mode) => {
-            state.subItemCreateMode = mode;
-            render();
-        };
-
-        window.handleSubItemSubmit = (e) => {
-            e.preventDefault();
-            const assetNumber = document.getElementById('subAsset').value;
-            const description = document.getElementById('subDesc').value;
-            const price = Number(document.getElementById('subPrice').value);
-            const itemStatus = document.getElementById('subStatus').value;
-
-            const groupIndex = state.equipmentGroups.findIndex(g => g.id === state.targetGroupId);
-            if (groupIndex === -1) return;
-
-            if (state.editingSubItem) {
-                const itemIndex = state.equipmentGroups[groupIndex].items.findIndex(i => i.id === state.editingSubItem.id);
-                if (itemIndex > -1) {
-                    state.equipmentGroups[groupIndex].items[itemIndex] = { ...state.editingSubItem, assetNumber, description, price, itemStatus };
+            const handleAttachFileToDocument = (e) => {
+                const file = e.target.files[0];
+                if (file && selectedDocId) {
+                setDocuments(prevDocs => prevDocs.map(doc => doc.id === selectedDocId ? { ...doc, attachedFile: file.name } : doc));
                 }
-            } else {
-                state.equipmentGroups[groupIndex].items.push({ id: `i-${Date.now()}`, assetNumber, description, price, itemStatus });
-            }
-            closeModal('subItem');
-        };
+            };
 
-        window.handleExcelSubItemSubmit = () => {
-            if (!state.parsedSubItems) return;
-            const groupIndex = state.equipmentGroups.findIndex(g => g.id === state.targetGroupId);
-            if (groupIndex === -1) return;
+            const toggleGroupExpand = (groupId) => {
+                setExpandedGroups(prev => prev.includes(groupId) ? prev.filter(id => id !== groupId) : [...prev, groupId]);
+            };
 
-            const newItems = state.parsedSubItems.map((item, i) => ({
-                id: `i-ex-${Date.now()}-${i}`,
-                assetNumber: item.assetNumber,
-                description: item.description,
-                price: Number(item.price),
-                itemStatus: item.itemStatus
-            }));
+            const toggleSubItemExpand = (itemId) => {
+                setExpandedSubItems(prev => prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]);
+            };
 
-            state.equipmentGroups[groupIndex].items.push(...newItems);
-            closeModal('subItem');
-        };
+            const handleOpenAddGroup = () => {
+                setEditingGroup(null);
+                setGroupFormData({ title: '' });
+                setGroupCreateMode('manual');
+                setGroupFile(null);
+                setParsedGroups(null);
+                setIsGroupModalOpen(true);
+                setActiveMenu(null);
+            };
 
-        window.clearSubItemExcel = () => {
-            state.parsedSubItems = null;
-            state.subItemFileName = null;
-            render();
-        };
+            const handleOpenEditGroup = (group, e) => {
+                e.stopPropagation(); 
+                setEditingGroup(group);
+                setGroupFormData({ title: group.title });
+                setGroupCreateMode('manual');
+                setIsGroupModalOpen(true);
+                setActiveMenu(null);
+            };
 
-        // Delete Methods
-        window.confirmDelete = (type, groupId, itemId = null) => {
-            state.activeMenu = null;
-            state.deleteTarget = { type, groupId, itemId };
-            state.modals.delete = true;
-            render();
-        };
+            const handleDeleteGroup = (groupId, e) => {
+                e.stopPropagation();
+                setDeleteConfirm({ isOpen: true, type: 'group', groupId, itemId: null });
+                setActiveMenu(null);
+            };
 
-        window.executeDelete = () => {
-            const { type, groupId, itemId } = state.deleteTarget;
-            if (type === 'group') {
-                state.equipmentGroups = state.equipmentGroups.filter(g => g.id !== groupId);
-            } else if (type === 'sub') {
-                const groupIndex = state.equipmentGroups.findIndex(g => g.id === groupId);
-                if (groupIndex > -1) {
-                    state.equipmentGroups[groupIndex].items = state.equipmentGroups[groupIndex].items.filter(i => i.id !== itemId);
+            const handleSaveGroup = (e) => {
+                e.preventDefault();
+                if (editingGroup) {
+                setEquipmentGroups(prev => prev.map(g => g.id === editingGroup.id ? { ...g, title: groupFormData.title } : g));
+                } else {
+                const newGroup = { id: `g-${Date.now()}`, docId: selectedDocId, title: groupFormData.title, items: [] };
+                setEquipmentGroups([...equipmentGroups, newGroup]);
+                setExpandedGroups([...expandedGroups, newGroup.id]); 
                 }
-            }
-            closeModal('delete');
-        };
+                setIsGroupModalOpen(false);
+            };
 
-        // Excel Parser Engine
-        window.handleExcelUpload = (e, context) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            if (context === 'doc') {
-                state.isParsing = true;
-                state.createFileName = file.name;
-            } else {
-                state.isSubItemParsing = true;
-                state.subItemFileName = file.name;
-            }
-            render();
-
-            const reader = new FileReader();
-            reader.onload = (evt) => {
+            const handleGroupFileUpload = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setGroupFile(file);
+                setIsGroupParsing(true);
+                
                 try {
+                const XLSX = await loadSheetJS();
+                const reader = new FileReader();
+                reader.onload = (evt) => {
                     const data = new Uint8Array(evt.target.result);
                     const wb = XLSX.read(data, { type: 'array' });
                     const ws = wb.Sheets[wb.SheetNames[0]];
                     const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                    
+                    const parsedGroups = [];
+                    let currentGroup = null;
 
-                    const parsedItems = [];
-                    rows.forEach((row, index) => {
-                        if (!row || row.length < 2) return;
-                        const priceVal = parseFloat(row[2]);
-                        if (index === 0 && isNaN(priceVal) && typeof row[1] === 'string') return; // Skip Header
-                        
-                        parsedItems.push({
-                            assetNumber: row[0] ? String(row[0]) : '',
-                            description: row[1] ? String(row[1]) : '',
-                            price: isNaN(priceVal) ? 0 : priceVal,
-                            itemStatus: 'pending'
-                        });
-                    });
-
-                    if (context === 'doc') {
-                        state.parsedCreateData = {
-                            id: `TR-EX-${Math.floor(1000 + Math.random() * 9000)}`,
-                            date: new Date().toISOString().split('T')[0],
-                            destination: 'รอระบุปลายทาง',
-                            items: parsedItems
-                        };
-                        state.isParsing = false;
-                    } else {
-                        state.parsedSubItems = parsedItems;
-                        state.isSubItemParsing = false;
+                    rows.forEach((row) => {
+                    if (!row || row.length === 0) return;
+                    
+                    let textStr = '';
+                    let textColIndex = -1;
+                    for(let i=0; i<Math.min(row.length, 5); i++) {
+                        if (typeof row[i] === 'string' && row[i].trim() !== '') {
+                            textStr = row[i].trim();
+                            textColIndex = i;
+                            break;
+                        }
                     }
-                    render();
+                    if (!textStr) return;
+
+                    let priceVal = 0;
+                    for(let i=textColIndex+1; i<row.length; i++) {
+                        if (row[i] !== null && row[i] !== undefined && !isNaN(parseFloat(row[i]))) {
+                            priceVal = parseFloat(row[i]);
+                            break;
+                        }
+                    }
+
+                    const isGroupMatch = /^\d+\./.test(textStr);
+                    const isSubItemMatch = /^-/.test(textStr);
+
+                    if (isGroupMatch || (!isSubItemMatch && !currentGroup)) {
+                        currentGroup = { title: textStr, items: [] };
+                        parsedGroups.push(currentGroup);
+                    } else if (isSubItemMatch && currentGroup) {
+                        let assetRaw = '';
+                        if (textColIndex > 0) assetRaw = String(row[0]||'').trim();
+                        let desc = textStr;
+                        if (desc.startsWith('-')) desc = desc.substring(1).trim();
+                        currentGroup.items.push({ assetNumberRaw: assetRaw, description: desc, price: priceVal, itemStatus: 'pending' });
+                    }
+                    });
+                    
+                    setParsedGroups(parsedGroups);
+                    setIsGroupParsing(false);
+                };
+                reader.readAsArrayBuffer(file);
                 } catch (err) {
-                    console.error(err);
-                    alert('เกิดข้อผิดพลาดในการอ่านไฟล์ Excel (กรุณาใช้ไฟล์ .xlsx หรือ .csv)');
-                    if (context === 'doc') state.isParsing = false;
-                    else state.isSubItemParsing = false;
-                    render();
+                console.error(err);
+                alert('เกิดข้อผิดพลาดในการอ่านไฟล์ Excel');
+                setIsGroupParsing(false);
                 }
             };
-            reader.readAsArrayBuffer(file);
-        };
 
-        // Initialize App
-        document.addEventListener('DOMContentLoaded', () => {
-            render();
-            // Close menu if clicked outside
-            document.addEventListener('click', () => {
-                if (state.activeMenu) {
-                    state.activeMenu = null;
-                    render();
+            const handleExcelGroupSubmit = () => {
+                if (!parsedGroups) return;
+                
+                const newGroups = parsedGroups.map((g, idx) => ({
+                id: `g-${Date.now()}-${idx}`,
+                docId: selectedDocId,
+                title: g.title,
+                items: g.items.map((item, iIdx) => {
+                    const initialAssets = item.assetNumberRaw ? [{ id: `a-ex-${Date.now()}-${idx}-${iIdx}`, assetNumber: item.assetNumberRaw, assetName: '', image: null, status: 'pending' }] : [];
+                    return {
+                    id: `i-ex-${Date.now()}-${idx}-${iIdx}`,
+                    description: item.description,
+                    price: Number(item.price),
+                    itemStatus: item.itemStatus,
+                    assets: initialAssets
+                    };
+                })
+                }));
+
+                setEquipmentGroups([...equipmentGroups, ...newGroups]);
+                setExpandedGroups([...expandedGroups, ...newGroups.map(g => g.id)]);
+                setIsGroupModalOpen(false);
+            };
+
+            const handleOpenAddSubItem = (groupId, e) => {
+                e.stopPropagation();
+                setTargetGroupId(groupId);
+                setEditingSubItem(null);
+                setSubItemFormData({ description: '', price: '', itemStatus: 'pending', assets: [] });
+                setSubItemCreateMode('manual');
+                setSubItemFile(null);
+                setParsedSubItems(null);
+                setIsSubItemModalOpen(true);
+                setActiveMenu(null);
+                if (!expandedGroups.includes(groupId)) setExpandedGroups([...expandedGroups, groupId]);
+            };
+
+            const handleOpenEditSubItem = (groupId, item, e) => {
+                e.stopPropagation();
+                setTargetGroupId(groupId);
+                setEditingSubItem(item);
+                setSubItemFormData({ 
+                description: item.description, 
+                price: item.price, 
+                itemStatus: item.itemStatus || 'pending',
+                assets: item.assets ? item.assets.map(a => ({...a, status: a.status || 'pending'})) : []
+                });
+                setSubItemCreateMode('manual'); 
+                setIsSubItemModalOpen(true);
+                setActiveMenu(null);
+            };
+
+            const closeSubItemModal = () => {
+                setIsSubItemModalOpen(false);
+                setSubItemCreateMode('manual');
+                setSubItemFile(null);
+                setParsedSubItems(null);
+            };
+
+            const handleDeleteSubItem = (groupId, itemId, e) => {
+                e.stopPropagation();
+                setDeleteConfirm({ isOpen: true, type: 'sub', groupId, itemId });
+                setActiveMenu(null);
+            };
+
+            const executeDelete = () => {
+                if (deleteConfirm.type === 'group') {
+                setEquipmentGroups(prev => prev.filter(g => g.id !== deleteConfirm.groupId));
+                } else if (deleteConfirm.type === 'sub') {
+                setEquipmentGroups(prev => prev.map(g => {
+                    if (g.id === deleteConfirm.groupId) return { ...g, items: g.items.filter(i => i.id !== deleteConfirm.itemId) };
+                    return g;
+                }));
                 }
-            });
-        });
+                setDeleteConfirm({ isOpen: false, type: null, groupId: null, itemId: null });
+            };
 
+            const handleAddAssetToForm = () => {
+                setSubItemFormData(prev => ({
+                ...prev,
+                assets: [...prev.assets, { id: `a-${Date.now()}`, assetNumber: '', assetName: '', image: null, status: 'pending' }]
+                }));
+            };
+
+            const handleUpdateAssetInForm = (id, field, value) => {
+                setSubItemFormData(prev => ({
+                ...prev,
+                assets: prev.assets.map(a => a.id === id ? { ...a, [field]: value } : a)
+                }));
+            };
+
+            const handleRemoveAssetFromForm = (id) => {
+                setSubItemFormData(prev => ({
+                ...prev,
+                assets: prev.assets.filter(a => a.id !== id)
+                }));
+            };
+
+            const handleImageUploadInForm = (id, e) => {
+                const file = e.target.files[0];
+                if (file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    handleUpdateAssetInForm(id, 'image', evt.target.result);
+                };
+                reader.readAsDataURL(file); 
+                }
+            };
+
+            const handleSaveSubItem = (e) => {
+                e.preventDefault();
+                setEquipmentGroups(prev => prev.map(g => {
+                if (g.id === targetGroupId) {
+                    const finalItemStatus = subItemFormData.assets.length > 0
+                    ? (subItemFormData.assets.every(a => a.status === 'purchased') ? 'purchased' : 'pending')
+                    : subItemFormData.itemStatus;
+
+                    if (editingSubItem) {
+                    return {
+                        ...g,
+                        items: g.items.map(i => i.id === editingSubItem.id ? { 
+                        ...i, 
+                        description: subItemFormData.description, 
+                        price: Number(subItemFormData.price), 
+                        itemStatus: finalItemStatus,
+                        assets: subItemFormData.assets 
+                        } : i)
+                    };
+                    } else {
+                    const newItem = {
+                        id: `i-${Date.now()}`,
+                        description: subItemFormData.description,
+                        price: Number(subItemFormData.price),
+                        itemStatus: finalItemStatus,
+                        assets: subItemFormData.assets
+                    };
+                    return { ...g, items: [...g.items, newItem] };
+                    }
+                }
+                return g;
+                }));
+                closeSubItemModal();
+            };
+
+            const handleSubItemFileUpload = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setSubItemFile(file);
+                setIsSubItemParsing(true);
+                
+                try {
+                const XLSX = await loadSheetJS();
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const data = new Uint8Array(evt.target.result);
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                    
+                    const parsedItems = [];
+                    rows.forEach((row) => {
+                    if (!row || row.length === 0) return;
+                    let textStr = '';
+                    let textColIndex = -1;
+                    for(let i=0; i<Math.min(row.length, 5); i++) {
+                        if (typeof row[i] === 'string' && row[i].trim() !== '') {
+                            textStr = row[i].trim();
+                            textColIndex = i;
+                            break;
+                        }
+                    }
+                    if (!textStr) return;
+
+                    let priceVal = 0;
+                    for(let i=textColIndex+1; i<row.length; i++) {
+                        if (row[i] !== null && row[i] !== undefined && !isNaN(parseFloat(row[i]))) {
+                            priceVal = parseFloat(row[i]);
+                            break;
+                        }
+                    }
+
+                    let assetRaw = '';
+                    if (textColIndex > 0) assetRaw = String(row[0]||'').trim();
+                    let desc = textStr;
+                    if (desc.startsWith('-')) desc = desc.substring(1).trim();
+
+                    parsedItems.push({
+                        assetNumberRaw: assetRaw,
+                        description: desc,
+                        price: priceVal,
+                        itemStatus: 'pending'
+                    });
+                    });
+                    setParsedSubItems(parsedItems);
+                    setIsSubItemParsing(false);
+                };
+                reader.readAsArrayBuffer(file);
+                } catch (err) {
+                console.error(err);
+                alert('เกิดข้อผิดพลาดในการอ่านไฟล์ Excel');
+                setIsSubItemParsing(false);
+                }
+            };
+
+            const handleExcelSubItemSubmit = (e) => {
+                e.preventDefault();
+                if (!parsedSubItems) return;
+                const newItems = parsedSubItems.map((item, index) => {
+                const initialAssets = item.assetNumberRaw 
+                    ? [{ id: `a-ex-${Date.now()}-${index}`, assetNumber: item.assetNumberRaw, assetName: '', image: null, status: 'pending' }]
+                    : [];
+                return {
+                    id: `i-ex-${Date.now()}-${index}`,
+                    description: item.description,
+                    price: Number(item.price),
+                    itemStatus: item.itemStatus,
+                    assets: initialAssets
+                };
+                });
+                setEquipmentGroups(prev => prev.map(g => {
+                if (g.id === targetGroupId) return { ...g, items: [...g.items, ...newItems] };
+                return g;
+                }));
+                closeSubItemModal();
+            };
+
+            const closeCreateModal = () => {
+                setIsCreateModalOpen(false);
+                setCreateMode('manual');
+                setSelectedFile(null);
+                setParsedData(null);
+                setFormData({ id: '', date: '', destination: '' });
+            };
+
+            const handleCreateSubmit = (e) => {
+                e.preventDefault();
+                if (!formData.id || !formData.date || !formData.destination) {
+                alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+                return;
+                }
+                const newDoc = { id: formData.id, date: formData.date, destination: formData.destination, status: 'untransferred', creator: 'ผู้ใช้ระบบ', notes: '-', attachedFile: null };
+                setDocuments([newDoc, ...documents]);
+                closeCreateModal();
+                handleViewDocument(newDoc.id);
+            };
+
+            const handleFileUpload = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setSelectedFile(file);
+                setIsParsing(true);
+                try {
+                const XLSX = await loadSheetJS();
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const data = new Uint8Array(evt.target.result);
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                    
+                    const parsedGroups = [];
+                    let currentGroup = null;
+
+                    rows.forEach((row) => {
+                    if (!row || row.length === 0) return;
+                    
+                    let textStr = '';
+                    let textColIndex = -1;
+                    for(let i=0; i<Math.min(row.length, 5); i++) {
+                        if (typeof row[i] === 'string' && row[i].trim() !== '') {
+                            textStr = row[i].trim();
+                            textColIndex = i;
+                            break;
+                        }
+                    }
+                    if (!textStr) return;
+
+                    let priceVal = 0;
+                    for(let i=textColIndex+1; i<row.length; i++) {
+                        if (row[i] !== null && row[i] !== undefined && !isNaN(parseFloat(row[i]))) {
+                            priceVal = parseFloat(row[i]);
+                            break;
+                        }
+                    }
+
+                    const isGroupMatch = /^\d+\./.test(textStr);
+                    const isSubItemMatch = /^-/.test(textStr);
+
+                    if (isGroupMatch || (!isSubItemMatch && !currentGroup)) {
+                        currentGroup = { title: textStr, items: [] };
+                        parsedGroups.push(currentGroup);
+                    } else if (isSubItemMatch && currentGroup) {
+                        let assetRaw = '';
+                        if (textColIndex > 0) assetRaw = String(row[0]||'').trim();
+                        let desc = textStr;
+                        if (desc.startsWith('-')) desc = desc.substring(1).trim();
+                        currentGroup.items.push({ assetNumberRaw: assetRaw, description: desc, price: priceVal, itemStatus: 'pending' });
+                    }
+                    });
+
+                    setParsedData({ id: `TR-EX-${Math.floor(1000 + Math.random() * 9000)}`, date: new Date().toISOString().split('T')[0], destination: 'รอระบุปลายทาง', groups: parsedGroups });
+                    setIsParsing(false);
+                };
+                reader.readAsArrayBuffer(file);
+                } catch (err) {
+                console.error(err);
+                alert('เกิดข้อผิดพลาดในการอ่านไฟล์ Excel');
+                setIsParsing(false);
+                }
+            };
+
+            const handleExcelSubmit = (e) => {
+                e.preventDefault();
+                if (!parsedData) return;
+                const newDoc = { id: parsedData.id, date: parsedData.date, destination: parsedData.destination, status: 'untransferred', creator: 'ผู้ใช้ระบบ', notes: `นำเข้าจากไฟล์: ${selectedFile?.name}`, attachedFile: null };
+                
+                const newGroups = parsedData.groups.map((g, gIdx) => ({
+                id: `g-${Date.now()}-${gIdx}`,
+                docId: newDoc.id,
+                title: g.title,
+                items: g.items.map((item, iIdx) => {
+                    const initialAssets = item.assetNumberRaw ? [{ id: `a-ex-${Date.now()}-${gIdx}-${iIdx}`, assetNumber: item.assetNumberRaw, assetName: '', image: null, status: 'pending' }] : [];
+                    return {
+                    id: `i-ex-${Date.now()}-${gIdx}-${iIdx}`,
+                    description: item.description,
+                    price: Number(item.price),
+                    itemStatus: item.itemStatus,
+                    assets: initialAssets
+                    };
+                })
+                }));
+
+                setDocuments([newDoc, ...documents]);
+                setEquipmentGroups([...equipmentGroups, ...newGroups]);
+                setExpandedGroups([...expandedGroups, ...newGroups.map(g => g.id)]);
+                closeCreateModal();
+                handleViewDocument(newDoc.id);
+            };
+
+            // --- Views ---
+
+            const GroupModal = () => {
+                if (!isGroupModalOpen) return null;
+                return (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50 px-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                    <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50 shrink-0">
+                        <h3 className="text-lg font-bold text-gray-800">{editingGroup ? 'แก้ไขหัวข้อหลัก' : 'เพิ่มหัวข้อหลักใหม่'}</h3>
+                        <button onClick={() => setIsGroupModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                    </div>
+                    
+                    {!editingGroup && (
+                        <div className="flex border-b border-gray-200 shrink-0">
+                        <button onClick={() => setGroupCreateMode('manual')} className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${groupCreateMode === 'manual' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'}`}>กรอกข้อมูลเอง</button>
+                        <button onClick={() => setGroupCreateMode('excel')} className={`flex-1 py-3 text-sm font-medium border-b-2 flex items-center justify-center gap-2 ${groupCreateMode === 'excel' ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500'}`}><FileSpreadsheet className="w-4 h-4" /> อัปโหลดไฟล์ Excel</button>
+                        </div>
+                    )}
+
+                    <div className="overflow-y-auto p-6">
+                        {groupCreateMode === 'manual' ? (
+                        <form id="group-form" onSubmit={handleSaveGroup} className="space-y-4">
+                            <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อหัวข้อหลัก</label>
+                            <textarea required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 min-h-[100px]" placeholder="เช่น 1. รายการ ชุดโต๊ะทำงาน เก้าอี้ทำงาน..." value={groupFormData.title} onChange={(e) => setGroupFormData({...groupFormData, title: e.target.value})} />
+                            </div>
+                        </form>
+                        ) : (
+                        <div className="space-y-6">
+                            {!parsedGroups ? (
+                            <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center relative bg-white">
+                                <input type="file" accept=".xlsx, .xls, .csv" onChange={handleGroupFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                                {isGroupParsing ? (
+                                <div className="flex flex-col items-center text-blue-600"><Loader2 className="w-10 h-10 animate-spin mb-3" /><p className="font-medium">กำลังอ่านข้อมูล...</p></div>
+                                ) : (
+                                <div className="flex flex-col items-center text-gray-500">
+                                    <UploadCloud className="w-12 h-12 text-gray-400 mb-3" />
+                                    <p className="text-lg font-medium text-gray-700 mb-1">คลิกเพื่อเลือกไฟล์ Excel</p>
+                                    <p className="text-xs text-blue-500 mt-2 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">รูปแบบ: คอลัมน์ A คือชื่อหัวข้อหลัก</p>
+                                </div>
+                                )}
+                            </div>
+                            ) : (
+                            <div className="space-y-4 animate-in fade-in">
+                                <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-start gap-3">
+                                <FileSpreadsheet className="w-5 h-5 mt-0.5" />
+                                <div className="flex-1">
+                                    <p className="font-medium">พบ {parsedGroups.length} รายการหัวข้อหลัก ({parsedGroups.reduce((acc, g) => acc + g.items.length, 0)} รายการย่อย)</p>
+                                    <p className="text-sm opacity-80">คลิกปุ่มนำเข้าด้านล่างเพื่อเริ่มสร้างหัวข้อทั้งหมด</p>
+                                </div>
+                                <button onClick={() => { setParsedGroups(null); setGroupFile(null); }} className="text-sm text-green-700 underline font-medium">เปลี่ยนไฟล์</button>
+                                </div>
+                                <div className="border border-gray-200 rounded-lg overflow-hidden max-h-60 overflow-y-auto">
+                                <ul className="divide-y divide-gray-100">
+                                    {parsedGroups.map((g, i) => (
+                                    <li key={i} className="px-4 py-2 text-sm text-gray-600 bg-white">
+                                        <div className="font-bold text-gray-800">• {g.title}</div>
+                                        {g.items && g.items.length > 0 && (
+                                        <div className="pl-4 mt-1 text-xs text-gray-500 space-y-1">
+                                            {g.items.map((item, j) => (
+                                            <div key={j} className="flex justify-between border-b border-gray-50 pb-1 last:border-0">
+                                                <span className="truncate pr-2">- {item.description}</span>
+                                                <span>{item.price ? item.price.toLocaleString() : 0} บ.</span>
+                                            </div>
+                                            ))}
+                                        </div>
+                                        )}
+                                    </li>
+                                    ))}
+                                </ul>
+                                </div>
+                            </div>
+                            )}
+                        </div>
+                        )}
+                    </div>
+                    
+                    <div className="p-4 border-t border-gray-100 bg-white flex gap-3 shrink-0">
+                        <button onClick={() => setIsGroupModalOpen(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
+                        {groupCreateMode === 'manual' ? (
+                        <button type="submit" form="group-form" className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">บันทึก</button>
+                        ) : (
+                        <button onClick={handleExcelGroupSubmit} disabled={!parsedGroups} className={`flex-1 px-4 py-2 rounded-lg font-bold transition-all shadow-sm ${parsedGroups ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
+                            นำเข้า {parsedGroups?.length || 0} หัวข้อหลัก
+                        </button>
+                        )}
+                    </div>
+                    </div>
+                </div>
+                );
+            };
+
+            const SubItemModal = () => {
+                if (!isSubItemModalOpen) return null;
+                return (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50 px-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                    <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50 shrink-0">
+                        <h3 className="text-lg font-bold text-gray-800">{editingSubItem ? 'แก้ไขรายการย่อยและครุภัณฑ์' : 'เพิ่มรายการย่อย'}</h3>
+                        <button onClick={closeSubItemModal} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                    </div>
+
+                    {!editingSubItem && (
+                        <div className="flex border-b border-gray-200 shrink-0">
+                        <button onClick={() => setSubItemCreateMode('manual')} className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${subItemCreateMode === 'manual' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'}`}>กรอกข้อมูลเอง</button>
+                        <button onClick={() => setSubItemCreateMode('excel')} className={`flex-1 py-3 text-sm font-medium border-b-2 flex items-center justify-center gap-2 ${subItemCreateMode === 'excel' ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500'}`}><FileSpreadsheet className="w-4 h-4" /> อัปโหลดไฟล์ Excel</button>
+                        </div>
+                    )}
+
+                    <div className="overflow-y-auto p-6 bg-gray-50">
+                        {subItemCreateMode === 'manual' ? (
+                        <form id="manual-subitem-form" onSubmit={handleSaveSubItem} className="space-y-6">
+                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500"></div>
+                            <h4 className="font-bold text-slate-800 flex items-center gap-2 mb-4"><Package className="w-5 h-5 text-blue-600"/> รายการครุภัณฑ์</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                <div className="md:col-span-2">
+                                <label className="block text-sm font-semibold text-slate-700 mb-1.5">ชื่อรายการครุภัณฑ์</label>
+                                <input type="text" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="ระบุรายละเอียด..." value={subItemFormData.description} onChange={(e) => setSubItemFormData({...subItemFormData, description: e.target.value})} />
+                                </div>
+                                <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1.5">จำนวนเงินรวม (บาท)</label>
+                                <input type="number" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 text-right font-mono" placeholder="0.00" value={subItemFormData.price} onChange={(e) => setSubItemFormData({...subItemFormData, price: e.target.value})} />
+                                </div>
+                            </div>
+                            </div>
+
+                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500"></div>
+                            <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+                                <h4 className="font-bold text-slate-800 flex items-center gap-2"><FileText className="w-5 h-5 text-emerald-600"/> รายละเอียดรายการครุภัณฑ์ <span className="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full text-xs font-bold">{subItemFormData.assets?.length || 0} รายการ</span></h4>
+                                <button type="button" onClick={handleAddAssetToForm} className="text-sm bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2 rounded-lg flex items-center gap-1.5 font-bold transition-colors border border-emerald-100"><PlusCircle className="w-4 h-4" /> แอดรายการครุภัณฑ์</button>
+                            </div>
+                            <div className="space-y-4">
+                                {subItemFormData.assets.map((asset, index) => (
+                                <div key={asset.id} className="p-5 border border-slate-200 rounded-xl bg-white relative">
+                                    <div className="absolute -left-3 -top-3 bg-slate-800 text-white w-8 h-8 flex items-center justify-center rounded-lg font-bold text-sm">{index + 1}</div>
+                                    <button type="button" onClick={() => handleRemoveAssetFromForm(asset.id)} className="absolute top-4 right-4 text-slate-300 hover:text-red-500"><Trash2 className="w-5 h-5" /></button>
+                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pl-2 pr-8">
+                                    <div className="lg:col-span-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1.5">หมายเลขครุภัณฑ์</label>
+                                        <input type="text" className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-md font-mono" placeholder="เลขครุภัณฑ์..." value={asset.assetNumber} onChange={(e) => handleUpdateAssetInForm(asset.id, 'assetNumber', e.target.value)} />
+                                        </div>
+                                        <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1.5">รายการ / รายละเอียด</label>
+                                        <input type="text" className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-md" placeholder="รายละเอียด..." value={asset.assetName} onChange={(e) => handleUpdateAssetInForm(asset.id, 'assetName', e.target.value)} />
+                                        </div>
+                                    </div>
+                                    <div className="lg:col-span-3">
+                                        <label className="block text-xs font-bold text-slate-500 mb-1.5">สถานะการจัดซื้อ</label>
+                                        <select className={`w-full px-3 py-2 text-sm border rounded-md font-bold ${asset.status === 'purchased' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`} value={asset.status || 'pending'} onChange={(e) => handleUpdateAssetInForm(asset.id, 'status', e.target.value)}>
+                                        <option value="pending">อยู่ระหว่างจัดซื้อ</option>
+                                        <option value="purchased">จัดซื้อแล้ว</option>
+                                        </select>
+                                    </div>
+                                    <div className="lg:col-span-3 flex flex-col justify-end">
+                                        <label className="block text-xs font-bold text-slate-500 mb-1.5">ภาพประกอบ</label>
+                                        <div className="flex items-center gap-3">
+                                        {asset.image && <div className="w-10 h-10 rounded border border-slate-200 overflow-hidden"><img src={asset.image} className="w-full h-full object-cover" /></div>}
+                                        <label className="cursor-pointer px-3 py-2 rounded-md flex items-center justify-center gap-1.5 text-xs font-bold border border-slate-200 w-full h-10 hover:bg-slate-50">
+                                            <Camera className="w-4 h-4" /> {asset.image ? 'เปลี่ยนภาพ' : 'แนบภาพ'}
+                                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUploadInForm(asset.id, e)} />
+                                        </label>
+                                        </div>
+                                    </div>
+                                    </div>
+                                </div>
+                                ))}
+                            </div>
+                            </div>
+
+                            {subItemFormData.assets?.length === 0 && (
+                            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <div><h4 className="font-bold text-slate-800 text-sm">สถานะของรายการย่อย</h4></div>
+                                <div className="w-full sm:w-64">
+                                <select className={`w-full px-4 py-2.5 border rounded-lg font-bold text-sm ${subItemFormData.itemStatus === 'purchased' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`} value={subItemFormData.itemStatus} onChange={(e) => setSubItemFormData({...subItemFormData, itemStatus: e.target.value})}>
+                                    <option value="pending">อยู่ระหว่างจัดซื้อ</option>
+                                    <option value="purchased">จัดซื้อแล้ว</option>
+                                </select>
+                                </div>
+                            </div>
+                            )}
+                        </form>
+                        ) : (
+                        <div className="space-y-6">
+                            {!parsedSubItems ? (
+                            <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center bg-white relative">
+                                <input type="file" accept=".xlsx, .xls, .csv" onChange={handleSubItemFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                                {isSubItemParsing ? (
+                                <div className="flex flex-col items-center text-blue-600"><Loader2 className="w-10 h-10 animate-spin mb-3" /><p className="font-medium">กำลังอ่านข้อมูล...</p></div>
+                                ) : (
+                                <div className="flex flex-col items-center text-gray-500">
+                                    <UploadCloud className="w-12 h-12 text-gray-400 mb-3" />
+                                    <p className="font-medium text-gray-700">คลิกเพื่ออัปโหลดไฟล์ Excel</p>
+                                    <p className="text-xs text-blue-500 mt-2 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">รูปแบบ: คอลัมน์ A (เลขครุภัณฑ์), B (รายการ), C (ราคา)</p>
+                                </div>
+                                )}
+                            </div>
+                            ) : (
+                            <div className="space-y-4 animate-in fade-in">
+                                <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-start gap-3">
+                                <FileSpreadsheet className="w-5 h-5 mt-0.5" />
+                                <div className="flex-1">
+                                    <p className="font-medium">พบ {parsedSubItems.length} รายการย่อย</p>
+                                    <p className="text-sm opacity-80">คลิกปุ่มนำเข้าด้านล่างเพื่อเริ่มสร้างรายการย่อย</p>
+                                </div>
+                                <button onClick={() => { setParsedSubItems(null); setSubItemFile(null); }} className="text-sm text-green-700 underline font-medium">เปลี่ยนไฟล์</button>
+                                </div>
+                                <div className="border border-gray-200 rounded-lg overflow-hidden max-h-60 overflow-y-auto">
+                                <ul className="divide-y divide-gray-100">
+                                    {parsedSubItems.map((item, i) => (
+                                    <li key={i} className="px-4 py-2 text-sm text-gray-600 bg-white flex justify-between">
+                                        <span className="truncate flex-1 pr-2">• {item.assetNumberRaw ? `[${item.assetNumberRaw}] ` : ''}{item.description}</span>
+                                        <span className="font-mono text-gray-900 font-bold">{item.price.toLocaleString()} บ.</span>
+                                    </li>
+                                    ))}
+                                </ul>
+                                </div>
+                            </div>
+                            )}
+                        </div>
+                        )}
+                    </div>
+                    
+                    <div className="p-4 border-t border-gray-100 bg-white flex gap-3 shrink-0">
+                        <button onClick={closeSubItemModal} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
+                        {subItemCreateMode === 'manual' ? (
+                        <button type="submit" form="manual-subitem-form" className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">บันทึกข้อมูล</button>
+                        ) : (
+                        <button onClick={handleExcelSubItemSubmit} disabled={!parsedSubItems} className={`flex-1 px-4 py-2 rounded-lg font-bold transition-all shadow-sm ${parsedSubItems ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
+                            นำเข้า {parsedSubItems?.length || 0} รายการ
+                        </button>
+                        )}
+                    </div>
+                    </div>
+                </div>
+                );
+            };
+
+            const AssetImagePreviewModal = () => {
+                if (!assetImagePreview.isOpen) return null;
+                return (
+                <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black bg-opacity-75 px-4 backdrop-blur-sm" onClick={() => setAssetImagePreview({ isOpen: false, imageUrl: null, title: '' })}>
+                    <div className="bg-white rounded-xl overflow-hidden max-w-3xl w-full" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center p-4 border-b border-gray-100">
+                        <h3 className="text-lg font-bold text-gray-800">{assetImagePreview.title}</h3>
+                        <button onClick={() => setAssetImagePreview({ isOpen: false, imageUrl: null, title: '' })} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                    </div>
+                    <div className="p-4 bg-gray-100 flex justify-center items-center min-h-[300px]"><img src={assetImagePreview.imageUrl} className="max-w-full max-h-[70vh] object-contain rounded shadow-sm" /></div>
+                    </div>
+                </div>
+                );
+            };
+
+            const DeleteConfirmModal = () => {
+                if (!deleteConfirm.isOpen) return null;
+                return (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black bg-opacity-50 px-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 animate-in zoom-in-95">
+                    <h3 className="text-lg font-bold text-gray-800 mb-2">ยืนยันการลบ</h3>
+                    <p className="text-gray-600 text-sm mb-6">คุณต้องการลบข้อมูลนี้ใช่หรือไม่?</p>
+                    <div className="flex gap-3">
+                        <button onClick={() => setDeleteConfirm({ isOpen: false })} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg">ยกเลิก</button>
+                        <button onClick={executeDelete} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">ลบข้อมูล</button>
+                    </div>
+                    </div>
+                </div>
+                );
+            };
+
+            const CreateDocumentModal = () => {
+                if (!isCreateModalOpen) return null;
+                return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+                    <div className="flex justify-between items-center p-4 border-b bg-gray-50"><h3 className="text-lg font-bold text-gray-800">สร้างใบโอนจัดสรรใหม่</h3><button onClick={closeCreateModal} className="text-gray-400"><X className="w-5 h-5" /></button></div>
+                    <div className="flex border-b">
+                        <button onClick={() => setCreateMode('manual')} className={`flex-1 py-3 text-sm font-medium border-b-2 ${createMode === 'manual' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'}`}>กรอกข้อมูลเอง</button>
+                        <button onClick={() => setCreateMode('excel')} className={`flex-1 py-3 text-sm font-medium border-b-2 ${createMode === 'excel' ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500'}`}>อัปโหลดไฟล์ Excel</button>
+                    </div>
+                    <div className="p-6">
+                        {createMode === 'manual' ? (
+                        <form id="manual-form" onSubmit={handleCreateSubmit} className="space-y-4">
+                            <div><label className="block text-sm font-medium text-gray-700">หมายเลขใบโอน</label><input type="text" required className="w-full px-3 py-2 border rounded-lg" value={formData.id} onChange={(e) => setFormData({...formData, id: e.target.value})} /></div>
+                            <div><label className="block text-sm font-medium text-gray-700">วันที่โอน</label><input type="date" required className="w-full px-3 py-2 border rounded-lg" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} /></div>
+                            <div><label className="block text-sm font-medium text-gray-700">ปลายทาง</label><input type="text" required className="w-full px-3 py-2 border rounded-lg" value={formData.destination} onChange={(e) => setFormData({...formData, destination: e.target.value})} /></div>
+                        </form>
+                        ) : (
+                        <div className="space-y-4">
+                            {!parsedData ? (
+                            <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center bg-white relative">
+                                <input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                                {isParsing ? (
+                                <div className="flex flex-col items-center text-blue-600"><Loader2 className="w-10 h-10 animate-spin mb-3" /><p className="font-medium">กำลังอ่านข้อมูล...</p></div>
+                                ) : (
+                                <div className="flex flex-col items-center text-gray-500">
+                                    <UploadCloud className="w-12 h-12 text-gray-400 mb-3" />
+                                    <p className="font-medium text-gray-700">คลิกเพื่ออัปโหลดไฟล์ Excel</p>
+                                </div>
+                                )}
+                            </div>
+                            ) : (
+                            <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-start gap-3">
+                                <FileSpreadsheet className="w-5 h-5 mt-0.5" />
+                                <div className="flex-1">
+                                <p className="font-medium">พร้อมนำเข้าข้อมูลใบโอน</p>
+                                <p className="text-sm opacity-80">พบ {parsedData.groups?.length || 0} หัวข้อหลัก, {parsedData.groups?.reduce((acc, g) => acc + g.items.length, 0) || 0} รายการย่อย</p>
+                                </div>
+                                <button type="button" onClick={() => { setParsedData(null); setSelectedFile(null); }} className="text-sm text-green-700 underline font-medium">เปลี่ยนไฟล์</button>
+                            </div>
+                            )}
+                        </div>
+                        )}
+                    </div>
+                    <div className="p-4 border-t flex gap-3">
+                        <button onClick={closeCreateModal} className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
+                        {createMode === 'manual' ? (
+                        <button type="submit" form="manual-form" className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">สร้างใบโอน</button>
+                        ) : (
+                        <button onClick={handleExcelSubmit} disabled={!parsedData} className={`flex-1 px-4 py-2 rounded-lg font-bold transition-all shadow-sm ${parsedData ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
+                            นำเข้าข้อมูล Excel
+                        </button>
+                        )}
+                    </div>
+                    </div>
+                </div>
+                );
+            };
+
+            const DocumentListView = () => {
+                return (
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2"><FileText className="text-blue-600" />รายการใบโอนจัดสรร</h2>
+                    <button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"><Plus className="w-4 h-4" /> สร้างใบโอนใหม่</button>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="p-4 border-b border-gray-100"><div className="relative w-full sm:w-72"><Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" /><input type="text" className="w-full pl-10 pr-3 py-2 border rounded-lg text-sm" placeholder="ค้นหา..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div></div>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr><th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">หมายเลขใบโอน</th><th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">วันที่โอน</th><th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">ปลายทาง</th><th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">สถานะ</th><th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">จัดการ</th></tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {filteredDocs.map((doc) => (
+                            <tr key={doc.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 text-center text-sm font-medium text-blue-600">{doc.id}</td>
+                                <td className="px-6 py-4 text-center text-sm text-gray-500">{new Date(doc.date).toLocaleDateString('th-TH')}</td>
+                                <td className="px-6 py-4 text-center text-sm text-gray-900">{doc.destination}</td>
+                                <td className="px-6 py-4 text-center"><StatusBadge status={doc.status} /></td>
+                                <td className="px-6 py-4 text-center"><button onClick={() => handleViewDocument(doc.id)} className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1.5 rounded-md text-sm mx-auto flex items-center gap-1"><Eye className="w-4 h-4" /> ดูรายละเอียด</button></td>
+                            </tr>
+                            ))}
+                        </tbody>
+                        </table>
+                    </div>
+                    </div>
+                    {CreateDocumentModal()}
+                </div>
+                );
+            };
+
+            const DocumentDetailView = () => {
+                if (!selectedDocument) return null;
+
+                let totalItemsCount = 0;
+                let purchasedItemsCount = 0;
+                let grandTotal = 0;
+                let purchasedTotal = 0;
+
+                relatedGroups.flatMap(g => g.items).forEach(item => {
+                const itemPrice = Number(item.price) || 0;
+                grandTotal += itemPrice;
+                if (item.assets && item.assets.length > 0) {
+                    totalItemsCount += item.assets.length;
+                    const purchasedAssets = item.assets.filter(a => a.status === 'purchased').length;
+                    purchasedItemsCount += purchasedAssets;
+                    purchasedTotal += (itemPrice / item.assets.length) * purchasedAssets;
+                } else {
+                    totalItemsCount += 1;
+                    if (item.itemStatus === 'purchased') { purchasedItemsCount += 1; purchasedTotal += itemPrice; }
+                }
+                });
+
+                const itemsPercent = totalItemsCount === 0 ? 0 : Math.round((purchasedItemsCount / totalItemsCount) * 100);
+                const moneyPercent = grandTotal === 0 ? 0 : Math.round((purchasedTotal / grandTotal) * 100);
+
+                const allGroupIds = relatedGroups.map(g => g.id);
+                const isAllExpanded = allGroupIds.length > 0 && expandedGroups.length === allGroupIds.length;
+                const toggleExpandAll = () => isAllExpanded ? (setExpandedGroups([]), setExpandedSubItems([])) : setExpandedGroups(allGroupIds);
+
+                return (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="flex items-center gap-4">
+                    <button onClick={handleBackToList} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><ArrowLeft className="w-5 h-5" /></button>
+                    <h2 className="text-xl font-bold text-gray-800">รายละเอียดใบโอนจัดสรร</h2>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="p-6 md:p-8">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-100 pb-4 mb-4 gap-4">
+                        <div><p className="text-sm text-gray-500 mb-1">หมายเลขใบโอน</p><h3 className="text-2xl font-bold text-blue-700">{selectedDocument.id}</h3></div>
+                        <div className="w-full md:w-auto text-left md:text-right">
+                            <p className="text-sm text-gray-500 mb-1">สถานะเอกสาร</p>
+                            <select value={selectedDocument.status} onChange={(e) => handleStatusChange(selectedDocument.id, e.target.value)} className={`block w-full md:w-48 text-sm rounded-md border p-2 font-bold outline-none cursor-pointer ${selectedDocument.status === 'completed' ? 'bg-green-100 text-green-800 border-green-200' : selectedDocument.status === 'pending' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-red-100 text-red-800 border-red-200'}`}>
+                            <option value="completed" className="bg-white text-gray-900">โอนจัดสรรแล้ว</option>
+                            <option value="pending" className="bg-white text-gray-900">อยู่ระหว่างดำเนินการ</option>
+                            <option value="untransferred" className="bg-white text-gray-900">ยังไม่โอนจัดสรร</option>
+                            </select>
+                        </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="flex items-start gap-3"><Calendar className="w-5 h-5 text-gray-400 mt-0.5" /><div><p className="text-sm font-medium text-gray-500">วันที่ทำรายการ</p><p className="text-gray-900">{new Date(selectedDocument.date).toLocaleDateString('th-TH')}</p></div></div>
+                        <div className="flex items-start gap-3"><MapPin className="w-5 h-5 text-blue-500 mt-0.5" /><div><p className="text-sm font-medium text-blue-600">หน่วยงานปลายทาง (ผู้รับ)</p><p className="text-gray-900 font-medium">{selectedDocument.destination}</p></div></div>
+                        </div>
+                    </div>
+                    <div className="p-6 md:p-8 border-t border-gray-100 bg-gray-50/30">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 p-2">
+                            <SemiCircleGauge percent={itemsPercent} color="#10b981" />
+                            <div className="flex flex-col space-y-3"><h4 className="text-gray-600 font-bold text-sm">ความคืบหน้าการจัดซื้อ</h4><p className={`text-xl font-bold ${itemsPercent === 100 ? 'text-green-600' : 'text-blue-600'}`}>{itemsPercent === 100 ? 'ดำเนินการแล้วเสร็จ' : 'กำลังดำเนินการ'}</p><div className="flex items-center gap-2 text-sm text-gray-600 font-medium"><span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>ผลสำเร็จ: {purchasedItemsCount} / {totalItemsCount} รายการ</div></div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 p-2 md:pl-8">
+                            <SemiCircleGauge percent={moneyPercent} color="#3b82f6" />
+                            <div className="flex flex-col space-y-3 w-full max-w-[200px]"><h4 className="text-gray-600 font-bold text-sm">งบประมาณ</h4><p className="text-xl font-bold text-gray-900">{grandTotal.toLocaleString()} บ.</p><div className="text-sm text-gray-600 space-y-1"><div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>ใช้ไป: {purchasedTotal.toLocaleString()} บ.</div><div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-gray-300"></span>เหลือ: {(grandTotal - purchasedTotal).toLocaleString()} บ.</div></div></div>
+                        </div>
+                        </div>
+                    </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="p-4 bg-gray-50 border-b flex justify-between items-center gap-4">
+                        <div><h3 className="text-lg font-bold text-gray-800 flex items-center gap-2"><Package className="w-5 h-5" /> รายการครุภัณฑ์ที่โอนจัดสรร</h3><p className="text-sm text-gray-500">ยอดรวม: <span className="font-bold text-green-600">{grandTotal.toLocaleString()} บาท</span></p></div>
+                        <div className="flex gap-2"><button onClick={toggleExpandAll} className="bg-white border px-3 py-2 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-colors hover:bg-gray-50">{isAllExpanded ? <><ChevronsUp className="w-4 h-4" /> ย่อทั้งหมด</> : <><ChevronsDown className="w-4 h-4" /> ขยายทั้งหมด</>}</button><button onClick={handleOpenAddGroup} className="bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center gap-1.5 text-sm font-medium hover:bg-blue-700 transition-colors"><Plus className="w-4 h-4" /> เพิ่มหัวข้อหลัก</button></div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-100">
+                            <tr><th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase w-16">ลำดับ</th><th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase w-32">จำนวน</th><th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase">รายการ</th><th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase w-32">จำนวนเงิน</th><th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase w-40">สถานะ</th><th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase w-24">จัดการ</th></tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {relatedGroups.map((group, gIndex) => {
+                            const isExpanded = expandedGroups.includes(group.id);
+                            const groupTotal = group.items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+                            const isAllPurchased = group.items.length > 0 && group.items.every(item => item.assets?.length > 0 ? item.assets.every(a => a.status === 'purchased') : item.itemStatus === 'purchased');
+                            return (
+                                <Fragment key={group.id}>
+                                <tr className={`hover:bg-slate-200 cursor-pointer transition-colors border-b border-gray-200 ${isExpanded ? 'bg-slate-100 shadow-inner' : 'bg-slate-50'}`} onClick={() => toggleGroupExpand(group.id)}>
+                                    <td className="px-4 py-4 text-sm font-extrabold text-slate-900"><div className="flex items-center gap-2 mx-auto justify-center">{isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}{gIndex + 1}</div></td>
+                                    <td className="px-4 py-4 text-center"></td>
+                                    <td className="px-4 py-4 text-sm font-extrabold text-slate-900 whitespace-pre-wrap">{group.title}</td>
+                                    <td className="px-4 py-4 text-sm font-extrabold text-slate-800 text-right">{groupTotal > 0 ? groupTotal.toLocaleString() : '-'}</td>
+                                    <td className="px-4 py-4 text-center"><span className={`inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-full border ${isAllPurchased ? 'bg-green-100 text-green-800 border-green-300' : 'bg-yellow-100 text-yellow-800 border-yellow-300'}`}>{isAllPurchased ? 'จัดซื้อครบแล้ว' : 'อยู่ระหว่างจัดซื้อ'}</span></td>
+                                    <td className="px-4 py-4 text-center relative"><button onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === group.id ? null : group.id); }} className="p-1.5 rounded-full hover:bg-slate-300 transition-colors"><MoreVertical className="w-5 h-5" /></button>
+                                    {activeMenu === group.id && (
+                                        <Fragment>
+                                        <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveMenu(null); }}></div>
+                                        <div className="absolute right-8 top-8 w-48 bg-white rounded-lg shadow-lg border z-50 py-1 text-left">
+                                            <button onClick={(e) => handleOpenAddSubItem(group.id, e)} className="w-full px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"><PlusCircle className="w-4 h-4 text-green-600" /> เพิ่มรายการย่อย</button>
+                                            <button onClick={(e) => handleOpenEditGroup(group, e)} className="w-full px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"><Edit className="w-4 h-4 text-blue-600" /> แก้ไขหัวข้อหลัก</button>
+                                            <div className="border-t my-1"></div>
+                                            <button onClick={(e) => handleDeleteGroup(group.id, e)} className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><Trash2 className="w-4 h-4" /> ลบหัวข้อหลัก</button>
+                                        </div>
+                                        </Fragment>
+                                    )}
+                                    </td>
+                                </tr>
+                                {isExpanded && group.items.map((item) => {
+                                    const isSubItemExpanded = expandedSubItems.includes(item.id);
+                                    const hasAssets = item.assets && item.assets.length > 0;
+                                    const pCount = hasAssets ? item.assets.filter(a => a.status === 'purchased').length : 0;
+                                    return (
+                                    <Fragment key={item.id}>
+                                        <tr className="bg-white hover:bg-gray-50 transition-colors border-b cursor-pointer" onClick={() => hasAssets && toggleSubItemExpand(item.id)}>
+                                        <td className="px-4 py-3"></td>
+                                        <td className="px-4 py-3 text-center">{hasAssets ? <button className="flex items-center justify-center gap-1 mx-auto bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-blue-100">{isSubItemExpanded ? <ChevronDown className="w-3 h-3"/> : <ChevronRight className="w-3 h-3"/>}{item.assets.length} รายการ</button> : <span className="text-gray-400 text-sm">-</span>}</td>
+                                        <td className="px-4 py-3 text-sm text-gray-700" style={{ paddingLeft: 'calc(1rem + 1.2cm)' }}>-{item.description}</td>
+                                        <td className="px-4 py-3 text-sm text-gray-700 text-right font-mono">{Number(item.price).toLocaleString()}</td>
+                                        <td className="px-4 py-3 text-center">
+                                            {hasAssets ? <span className={`inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-full border ${pCount === item.assets.length ? 'bg-green-50 text-green-700 border-green-200' : pCount > 0 ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>{pCount === item.assets.length ? 'จัดซื้อครบแล้ว' : pCount > 0 ? `จัดซื้อแล้ว ${pCount}/${item.assets.length}` : 'อยู่ระหว่างจัดซื้อ'}</span> : <span className={`inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-full border ${item.itemStatus === 'purchased' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>{item.itemStatus === 'purchased' ? 'จัดซื้อแล้ว' : 'อยู่ระหว่างจัดซื้อ'}</span>}
+                                        </td>
+                                        <td className="px-4 py-3 text-center relative">
+                                            <button onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === item.id ? null : item.id); }} className="text-gray-400 hover:bg-gray-200 p-1.5 rounded-full transition-colors"><MoreVertical className="w-4 h-4" /></button>
+                                            {activeMenu === item.id && (
+                                            <Fragment>
+                                                <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveMenu(null); }}></div>
+                                                <div className="absolute right-8 top-8 w-44 bg-white rounded-lg shadow-lg border z-50 py-1 text-left">
+                                                <button onClick={(e) => handleOpenEditSubItem(group.id, item, e)} className="w-full px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"><Edit className="w-4 h-4 text-blue-600" /> แก้ไข / แอดครุภัณฑ์</button>
+                                                <button onClick={(e) => handleDeleteSubItem(group.id, item.id, e)} className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><Trash2 className="w-4 h-4" /> ลบ</button>
+                                                </div>
+                                            </Fragment>
+                                            )}
+                                        </td>
+                                        </tr>
+                                        {isSubItemExpanded && hasAssets && (
+                                        <tr className="bg-slate-100/60">
+                                            <td colSpan="6" className="px-4 md:px-8 py-6 border-b shadow-inner">
+                                            <div className="max-w-5xl mx-auto">
+                                                <div className="flex items-center gap-2 mb-4 px-2"><Package className="w-4 h-4 text-blue-600" /><h4 className="font-bold text-slate-700">รายการครุภัณฑ์ ({item.assets.length} ชิ้น)</h4></div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {item.assets.map((asset, aIndex) => (
+                                                    <div key={asset.id} className="bg-white border rounded-xl p-4 flex gap-4 hover:border-blue-300 hover:shadow-md transition-all relative overflow-hidden group">
+                                                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${asset.status === 'purchased' ? 'bg-green-500' : 'bg-yellow-400'}`}></div>
+                                                    <div className={`w-20 h-20 rounded-lg flex-shrink-0 flex items-center justify-center border ${asset.image ? 'cursor-pointer overflow-hidden' : 'bg-slate-50 border-dashed border-slate-300 text-slate-300'}`} onClick={() => asset.image && setAssetImagePreview({ isOpen: true, imageUrl: asset.image, title: `ภาพประกอบ: ${asset.assetName || asset.assetNumber}` })}>
+                                                        {asset.image ? <div className="w-full h-full relative"><img src={asset.image} className="w-full h-full object-cover transition-transform group-hover:scale-110" /><div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><Eye className="w-5 h-5 text-white" /></div></div> : <ImageIcon className="w-6 h-6" />}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                        <span className="text-[10px] font-bold text-black uppercase tracking-wider bg-slate-100 px-1.5 py-0.5 rounded">ชิ้นที่ {aIndex + 1}</span>
+                                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${asset.status === 'purchased' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>{asset.status === 'purchased' ? 'จัดซื้อแล้ว' : 'รอจัดซื้อ'}</span>
+                                                        </div>
+                                                        <h5 className="font-mono text-sm font-bold text-blue-700 truncate">{asset.assetNumber || 'ไม่มีเลข'}</h5>
+                                                        <p className="text-xs text-slate-500 truncate mt-0.5">{asset.assetName || '-'}</p>
+                                                    </div>
+                                                    </div>
+                                                ))}
+                                                </div>
+                                            </div>
+                                            </td>
+                                        </tr>
+                                        )}
+                                    </Fragment>
+                                    );
+                                })}
+                                {isExpanded && group.items.length === 0 && (
+                                    <tr className="bg-white"><td colSpan="6" className="px-4 py-8 text-center text-gray-400 italic font-medium">ยังไม่มีรายการย่อย คลิก <button onClick={(e) => handleOpenAddSubItem(group.id, e)} className="text-blue-600 hover:underline">เพิ่มรายการย่อย</button></td></tr>
+                                )}
+                                </Fragment>
+                            );
+                            })}
+                            {relatedGroups.length === 0 && (
+                            <tr>
+                                <td colSpan="6" className="px-6 py-20 text-center">
+                                <div className="flex flex-col items-center justify-center text-slate-500">
+                                    <div className="bg-slate-100 p-5 rounded-full mb-4 shadow-inner">
+                                    <Package className="w-12 h-12 text-slate-400" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-slate-700 mb-2">ยังไม่มีหัวข้อหลักในใบโอนนี้</h3>
+                                    <p className="text-sm mb-6 max-w-md text-slate-500 text-center">คุณสามารถลบหัวข้อทั้งหมดได้ และสามารถเริ่มต้นการจัดสรรใหม่โดยการกดเพิ่มหัวข้อหลัก เพื่อใส่รายการครุภัณฑ์</p>
+                                    <button onClick={handleOpenAddGroup} className="bg-blue-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 font-bold transition-all shadow hover:bg-blue-700 transform hover:-translate-y-0.5"><Plus className="w-5 h-5"/> เพิ่มหัวข้อหลักเดี๋ยวนี้</button>
+                                </div>
+                                </td>
+                            </tr>
+                            )}
+                        </tbody>
+                        </table>
+                    </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 pb-2">
+                    <label className="cursor-pointer bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-bold transition-colors shadow-sm">
+                        <Paperclip className="w-4 h-4 text-gray-500" /><span className="truncate max-w-[200px]">{selectedDocument.attachedFile ? selectedDocument.attachedFile : 'แนบใบโอนจัดสรร'}</span>
+                        <input type="file" className="hidden" onChange={handleAttachFileToDocument} accept=".pdf,.jpg,.jpeg,.png" />
+                    </label>
+                    <button onClick={handleSaveDocumentDetail} disabled={isSavingDoc} className={`px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-bold transition-all shadow-sm ${saveSuccess ? 'bg-green-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'} ${isSavingDoc ? 'opacity-80' : ''}`}>
+                        {isSavingDoc ? <Fragment><Loader2 className="w-4 h-4 animate-spin" /> กำลังบันทึก...</Fragment> : saveSuccess ? <Fragment><CheckCircle className="w-4 h-4" /> บันทึกสำเร็จ</Fragment> : <Fragment><Save className="w-4 h-4" /> บันทึกข้อมูล</Fragment>}
+                    </button>
+                    </div>
+                </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
+                <div className="max-w-6xl mx-auto">
+                    {currentView === 'list' && (
+                        <header className="mb-8">
+                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">ระบบจัดสรรงบประมาณและครุภัณฑ์</h1>
+                        <p className="text-gray-500 mt-1">อ้างอิงฟอร์แมต: เอกสารการโอนเงินงบประมาณ/ค่าครุภัณฑ์</p>
+                        </header>
+                    )}
+                    <main>{currentView === 'list' ? DocumentListView() : DocumentDetailView()}</main>
+                    {GroupModal()} {SubItemModal()} {DeleteConfirmModal()} {CreateDocumentModal()} {AssetImagePreviewModal()}
+                </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
